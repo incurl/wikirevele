@@ -1,0 +1,61 @@
+---
+description: Valkyrie — Wails v3 + PocketBase + React desktop application template
+globs:
+  - "**/*.go"
+  - "**/*.ts"
+  - "**/*.tsx"
+alwaysApply: true
+---
+
+# Valkyrie
+
+A desktop application template: Wails v3, an embedded PocketBase, a React frontend. The domain belongs to the application; the
+scaffolding is shared.
+
+The canonical guides are `AGENTS.md` (working rules, commands, change routing), `CONTEXT.md` (vocabulary),
+`docs/architecture.md` (why), and `docs/troubleshooting.md` (what breaks). Read `AGENTS.md` before making a change.
+
+## The one concept
+
+**The job queue is generic; the runner is yours.**
+
+`internal/jobs` owns the lifecycle only: persistence, bounded concurrency, cancellation, status transitions, the Wails event
+push. A job is a title, a prompt, a `map[string]any` of params and an arbitrary result. The work goes to a `jobs.Runner`.
+
+The application replaces `internal/runner/echo.go` and changes nothing else. **Never put domain logic in `internal/jobs/`.**
+
+## Rules
+
+- The frontend never talks to PocketBase or a remote API directly. Go through `internal/bindings/service.go` and the wrappers
+  in `frontend/src/bindings/index.ts`.
+- Never hand-edit `frontend/bindings/` or `frontend/dist/`. Both are generated and gitignored.
+- Never edit an applied migration. A new migration needs a later timestamp in the file name and must be idempotent.
+- `app_settings` has no access rule. That is what keeps the secrets away from the HTTP API. Never add one.
+- Sizes in the stylesheet are in `rem`; the zoom scales the root font size.
+- The generated bindings type a missing array as nullable. Normalise it in the wrapper, not in the components.
+
+## Commands
+
+`wails3` lives in `~/go/bin` and is not on the default PATH of a non-interactive shell.
+
+```bash
+PATH="$HOME/go/bin:$PATH" wails3 build
+PATH="$HOME/go/bin:$PATH" wails3 task common:generate:bindings
+go test -race ./internal/... .
+cd frontend && npm run typecheck && npm test
+python3 tools/license-audit.py
+```
+
+`go build ./...` fails on `build/ios` by design. Build `./internal/... .` instead.
+
+## Before finishing
+
+Run the checks that match what you changed. The routing table is in `AGENTS.md`. When in doubt:
+
+```bash
+gofmt -l internal/ main.go main_test.go tools/
+go vet ./internal/... .
+go test -race ./internal/... .
+cd frontend && npm run typecheck && npm test && npm run build && cd ..
+python3 tools/license-audit.py
+```

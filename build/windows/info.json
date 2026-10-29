@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "0.1.0"
+	},
+	"info": {
+		"0409": {
+			"ProductVersion": "0.1.0",
+			"CompanyName": "incurl",
+			"FileDescription": "A Wails v3 desktop application",
+			"LegalCopyright": "© 2026, incurl",
+			"ProductName": "Valkyrie",
+			"Comments": "A Wails v3 desktop application"
+		}
+	}
+}

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=Valkyrie
+Comment=A Wails v3 desktop application
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/valkyrie %u
+Terminal=false
+Type=Application
+Icon=valkyrie
+Categories=Utility;
+StartupWMClass=valkyrie
+
+ 

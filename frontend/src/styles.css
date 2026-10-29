@@ -1,0 +1,696 @@
+/*
+ * Valkyrie styles.
+ *
+ * A dark, dense layout with a left control rail, a centre canvas and a
+ * right sidebar.
+ *
+ * Every size is expressed in rem, so that the whole interface follows
+ * the zoom factor, which scales the root font size.
+ */
+
+:root {
+  /*
+   * The interface is dark, so the native widgets (the select popup, the
+   * scrollbars, the date picker) must be told to use a dark palette.
+   * Without this, WebKitGTK renders the select popup with a light
+   * background while the option text stays light, which makes the
+   * selected item appear blank.
+   */
+  color-scheme: dark;
+
+  --bg: #101014;
+  --bg-raised: #17171d;
+  --bg-input: #1e1e26;
+  --bg-hover: #26262f;
+  --border: #2c2c36;
+  --border-strong: #3a3a46;
+  --text: #e6e6ea;
+  --text-muted: #9a9aa8;
+  --text-dim: #6d6d7c;
+  --accent: #6366f1;
+  --accent-hover: #7c7ff5;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --radius: 0.4615rem;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text);
+  background: var(--bg-input);
+  border: 0.0769rem solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.4615rem 0.6154rem;
+  width: 100%;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/*
+ * The native select popup is drawn by the engine, so the options need
+ * their own colours rather than inheriting the select's.
+ */
+select option {
+  color: var(--text);
+  background-color: var(--bg-input);
+}
+
+textarea {
+  resize: vertical;
+  font-family: var(--mono);
+  font-size: 0.9231rem;
+  line-height: 1.6;
+}
+
+code {
+  font-family: var(--mono);
+  background: var(--bg-input);
+  padding: 0 0.2308rem;
+  border-radius: 0.2308rem;
+}
+
+/* ---------- Layout ---------- */
+
+.app {
+  display: grid;
+  grid-template-columns: 22rem 1fr 18rem;
+  grid-template-rows: 3.6923rem 1fr auto;
+  height: 100%;
+}
+
+.app-header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 1.2308rem;
+  padding: 0 1.2308rem;
+  background: var(--bg-raised);
+  border-bottom: 0.0769rem solid var(--border);
+}
+
+.app-brand {
+  font-weight: 600;
+  font-size: 1.1538rem;
+  letter-spacing: 0.02em;
+}
+
+.app-brand small {
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-left: 0.6154rem;
+  font-size: 0.7692rem;
+}
+
+.app-header-spacer {
+  flex: 1;
+}
+
+.app-rail,
+.app-gallery {
+  overflow-y: auto;
+  background: var(--bg-raised);
+  padding: 0.9231rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.0769rem;
+}
+
+.app-rail {
+  border-right: 0.0769rem solid var(--border);
+}
+
+.app-gallery {
+  border-left: 0.0769rem solid var(--border);
+}
+
+.app-canvas {
+  overflow: auto;
+  padding: 1.2308rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.0769rem;
+}
+
+/* ---------- Panels ---------- */
+
+.panel {
+  border: 0.0769rem solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6154rem;
+  padding: 0.6154rem 0.7692rem;
+  background: var(--bg-raised);
+  border-bottom: 0.0769rem solid var(--border);
+  font-weight: 600;
+  font-size: 0.9231rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.panel-body {
+  padding: 0.7692rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7692rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3077rem;
+}
+
+.field-label {
+  font-size: 0.8462rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4615rem;
+}
+
+.field-hint {
+  font-size: 0.7692rem;
+  color: var(--text-dim);
+}
+
+.text-dim {
+  color: var(--text-dim);
+  font-size: 0.8462rem;
+}
+
+.grow {
+  flex: 1;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  background: var(--bg-input);
+  color: var(--text);
+  border: 0.0769rem solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 0.4615rem 0.7692rem;
+  font-size: 0.8462rem;
+  font-weight: 500;
+  transition: background 0.12s ease-in-out, border-color 0.12s ease-in-out;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.btn-sm {
+  padding: 0.2308rem 0.5385rem;
+  font-size: 0.7692rem;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-active {
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+
+/* ---------- Parameters ---------- */
+
+.param-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.3077rem;
+  align-items: center;
+}
+
+/* ---------- Queue ---------- */
+
+.queue {
+  display: flex;
+  align-items: center;
+  gap: 0.7692rem;
+  min-width: 0;
+}
+
+.queue-summary {
+  color: var(--text-muted);
+  font-size: 0.7692rem;
+  white-space: nowrap;
+}
+
+.queue-list {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4615rem;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.queue-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3846rem;
+  padding: 0.2308rem 0.4615rem;
+  background: var(--bg-input);
+  border: 0.0769rem solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.7692rem;
+  white-space: nowrap;
+}
+
+.queue-dot {
+  width: 0.4615rem;
+  height: 0.4615rem;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex: none;
+}
+
+.queue-status-running .queue-dot {
+  background: var(--accent);
+}
+
+.queue-status-completed .queue-dot {
+  background: var(--success);
+}
+
+.queue-status-failed .queue-dot {
+  background: var(--danger);
+}
+
+.queue-status-cancelled .queue-dot {
+  background: var(--text-dim);
+}
+
+.queue-title {
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queue-elapsed {
+  color: var(--text-dim);
+}
+
+/* ---------- Modal ---------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--bg-raised);
+  border: 0.0769rem solid var(--border-strong);
+  border-radius: var(--radius);
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 4rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7692rem 1rem;
+  border-bottom: 0.0769rem solid var(--border);
+  font-weight: 600;
+}
+
+.modal-tabs {
+  display: flex;
+  gap: 0.3077rem;
+  padding: 0 1rem;
+  border-bottom: 0.0769rem solid var(--border);
+}
+
+.modal-tab {
+  background: none;
+  border: none;
+  border-bottom: 0.1538rem solid transparent;
+  color: var(--text-muted);
+  padding: 0.4615rem 0.3077rem;
+  margin-bottom: -0.0769rem;
+  font-size: 0.8462rem;
+  font-weight: 500;
+}
+
+.modal-tab:hover {
+  color: var(--text);
+}
+
+.modal-tab-active {
+  color: var(--accent-hover);
+  border-bottom-color: var(--accent);
+}
+
+.modal-body {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  /*
+   * The panels hold different amounts of content, and the dialog would
+   * change size under the reader as they move between the tabs.
+   */
+  min-height: 9rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5385rem;
+  padding: 0.7692rem 1rem;
+  border-top: 0.0769rem solid var(--border);
+}
+
+.zoom-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3077rem;
+}
+
+/* ---------- Toast ---------- */
+
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.6154rem 1.2308rem;
+  border-radius: var(--radius);
+  border: 0.0769rem solid var(--border-strong);
+  background: var(--bg-raised);
+  z-index: 200;
+  font-size: 0.8462rem;
+}
+
+.toast-error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.toast-success {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+/* ---------- Crash screen ---------- */
+
+/*
+ * Shown by the error boundary instead of a blank window, which a desktop
+ * application cannot recover from.
+ */
+.crash {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+  background: var(--bg);
+}
+
+.crash-panel {
+  max-width: 40rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--bg-raised);
+  border: 0.0769rem solid var(--border-strong);
+  border-radius: var(--radius);
+}
+
+.crash-panel h1 {
+  margin: 0;
+  font-size: 1.2308rem;
+  font-weight: 600;
+}
+
+.crash-message {
+  margin: 0;
+  padding: 0.7692rem;
+  background: var(--bg-input);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 0.8462rem;
+  color: var(--danger);
+  white-space: pre-wrap;
+  word-break: break-word;
+  /* The message is the useful part, so it must be selectable. */
+  user-select: text;
+}
+
+.crash-actions {
+  display: flex;
+  gap: 0.5385rem;
+}
+
+/* ---------- Console ---------- */
+
+.console {
+  grid-column: 1 / -1;
+  background: var(--bg-raised);
+  border-top: 0.0769rem solid var(--border);
+  display: flex;
+  flex-direction: column;
+  max-height: 16rem;
+}
+
+.console-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4615rem;
+  padding: 0.3846rem 0.7692rem;
+  border-bottom: 0.0769rem solid var(--border);
+}
+
+.console-summary {
+  font-size: 0.7692rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.console-error-count {
+  color: var(--danger);
+}
+
+.console-body {
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 0.7692rem;
+  line-height: 1.5;
+}
+
+.console-empty {
+  padding: 0.7692rem;
+  color: var(--text-dim);
+}
+
+.console-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5385rem;
+  padding: 0.1538rem 0.7692rem;
+  cursor: pointer;
+}
+
+.console-entry:hover {
+  background: var(--bg-input);
+}
+
+.console-entry-selected {
+  background: var(--bg-input);
+}
+
+.console-time {
+  flex: none;
+  color: var(--text-dim);
+}
+
+.console-level {
+  flex: none;
+  color: var(--text-muted);
+  min-width: 2.769rem;
+}
+
+.console-source {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.console-message {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  /* The message is the part readers copy, so it reads as text. */
+  cursor: text;
+  user-select: text;
+}
+
+/*
+ * The per-entry copy button stays out of the way while reading and
+ * appears when the row is hovered or focused.
+ */
+.console-entry-copy {
+  flex: none;
+  align-self: center;
+  padding: 0 0.4615rem;
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border: 0.0769rem solid var(--border-strong);
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 0.6923rem;
+  line-height: 1.5;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease-in-out;
+  /*
+   * Without this the button label is swept up by a selection that
+   * spans several entries, so "Copy" would end up inside the text the
+   * reader pastes elsewhere.
+   */
+  user-select: none;
+}
+
+.console-entry:hover .console-entry-copy,
+.console-entry:focus-within .console-entry-copy {
+  opacity: 1;
+}
+
+.console-entry-copy:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.console-detail-hint {
+  color: var(--text-dim);
+  font-size: 0.6923rem;
+}
+
+.console-level-error .console-level {
+  color: var(--danger);
+}
+
+.console-level-error .console-message {
+  color: var(--danger);
+}
+
+.console-level-warn .console-level {
+  color: var(--warning);
+}
+
+.console-level-warn .console-message {
+  color: var(--warning);
+}
+
+.console-level-raw .console-level {
+  color: var(--accent-hover);
+}
+
+.console-detail {
+  border-top: 0.0769rem solid var(--border);
+  background: var(--bg-raised);
+  max-height: 12rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.console-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4615rem;
+  padding: 0.3846rem 0.9231rem;
+  color: var(--text-dim);
+  font-size: 0.7692rem;
+}
+
+.console-detail-body {
+  margin: 0;
+  padding: 0 0.9231rem 0.9231rem;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 0.8462rem;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  /* The raw payload is copied verbatim, so it must be selectable. */
+  user-select: text;
+  cursor: text;
+}
