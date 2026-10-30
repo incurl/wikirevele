@@ -694,3 +694,110 @@ code {
   user-select: text;
   cursor: text;
 }
+
+/* ---------- ETL ---------- */
+
+/*
+ * The command is the whole point of the panel: it is what the user
+ * copies and runs in a terminal. It is shown in the monospace font,
+ * and it wraps so that a long path does not push the panel wide.
+ */
+.etl-command {
+  margin: 0;
+  padding: 0.6154rem 0.7692rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 0.7692rem;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-all;
+  /* The command is copied verbatim, so it must be selectable. */
+  user-select: text;
+  cursor: text;
+}
+
+.etl-command-small {
+  font-size: 0.6923rem;
+  padding: 0.4615rem 0.6154rem;
+}
+
+.etl-actions {
+  display: flex;
+  gap: 0.4615rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.4615rem;
+}
+
+.etl-problems {
+  margin: 0;
+  padding-left: 1.1538rem;
+  color: var(--warning);
+  font-size: 0.7692rem;
+}
+
+.etl-error {
+  margin: 0.4615rem 0 0;
+  color: var(--danger);
+  font-size: 0.7692rem;
+  word-break: break-word;
+}
+
+.etl-progress {
+  margin-top: 0.7692rem;
+  padding-top: 0.7692rem;
+  border-top: 1px solid var(--border);
+}
+
+.etl-status {
+  font-size: 0.7692rem;
+  font-weight: 600;
+}
+
+.etl-status-running {
+  color: var(--accent);
+}
+
+.etl-status-succeeded {
+  color: var(--success);
+}
+
+.etl-status-cancelled {
+  color: var(--text-dim);
+}
+
+.etl-status-failed {
+  color: var(--danger);
+}
+
+.etl-history-entry {
+  padding: 0.6154rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.etl-history-entry:last-child {
+  border-bottom: none;
+}
+
+/* A row of a field that holds a checkbox and nothing else. */
+.field-row {
+  flex-direction: row;
+  align-items: center;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4615rem;
+  font-size: 0.8462rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: auto;
+  margin: 0;
+}

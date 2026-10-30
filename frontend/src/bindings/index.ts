@@ -9,10 +9,12 @@
  * checked in.
  */
 
-import * as AppServiceBindings from '../../bindings/github.com/incurl/valkyrie/internal/bindings/appservice';
-import * as BindingsModels from '../../bindings/github.com/incurl/valkyrie/internal/bindings/models';
-import * as JobsModels from '../../bindings/github.com/incurl/valkyrie/internal/jobs/models';
-import * as ConsoleModels from '../../bindings/github.com/incurl/valkyrie/internal/console/models';
+import * as AppServiceBindings from '../../bindings/github.com/incurl/wikirevele/internal/bindings/appservice';
+import * as BindingsModels from '../../bindings/github.com/incurl/wikirevele/internal/bindings/models';
+import * as JobsModels from '../../bindings/github.com/incurl/wikirevele/internal/jobs/models';
+import * as ConsoleModels from '../../bindings/github.com/incurl/wikirevele/internal/console/models';
+import * as WikidataModels from '../../bindings/github.com/incurl/wikirevele/internal/bindings/models';
+import * as WikidataPackage from '../../bindings/github.com/incurl/wikirevele/internal/wikidata/models';
 
 // The generated model classes are the source of truth for the shapes that
 // cross the Wails boundary. The status and kind fields are narrowed to
@@ -35,11 +37,45 @@ export type Artifact = JobsModels.Artifact & {
 export type ConsoleEntry = ConsoleModels.Entry;
 
 /**
+ * The imported Wikidata items the panel browses.
+ *
+ * The items are the records of the database, where the importer put
+ * them. The claims are the statements of the dataset, typed as a
+ * record of unknown: the panel's own types describe the shape it
+ * expects, and the backend does not have to mirror it.
+ */
+export type WikidataItems = {
+  items: WikidataModels.WikidataItemView[];
+  total: number;
+  properties: Record<string, string>;
+};
+
+/**
  * The application settings as seen by the UI.
  *
  * The API key is never returned by the backend, only its presence.
  */
 export type Settings = BindingsModels.SettingsView;
+
+/**
+ * The parameters of an ETL pipeline run.
+ *
+ * The languages are normalised here: the generator types a missing
+ * array as nullable, and the backend always sends an array.
+ */
+export type EtlJobOptions = Omit<BindingsModels.EtlJobOptions, 'langs'> & {
+  langs: string[];
+};
+
+/**
+ * The state of an ETL pipeline run.
+ */
+export type EtlProgress = BindingsModels.EtlProgress;
+
+/**
+ * One run of the ETL worker, as the history shows it.
+ */
+export type EtlHistoryEntry = BindingsModels.EtlHistoryEntry;
 
 /**
  * The Wails event name emitted when a job changes state.
@@ -50,6 +86,11 @@ export const EVENT_JOB_UPDATED = 'job:updated';
  * The Wails event name emitted when a debug console entry is added.
  */
 export const EVENT_CONSOLE_ENTRY = 'console:entry';
+
+/**
+ * The Wails event name emitted when an ETL run changes state.
+ */
+export const EVENT_ETL_PROGRESS = 'etl:progress';
 
 /**
  * Submits a job.
@@ -150,6 +191,118 @@ export function saveUI(ui: { zoom: number; theme: string }): Promise<void> {
 }
 
 /**
+ * Returns the imported Wikidata items the panel browses.
+ *
+ * The items are read by the backend from the database, where the
+ * importer put them. An empty dataset is not an error: the panel shows
+ * an empty list.
+ */
+export function getWikidataItems(limit: number, offset: number): Promise<WikidataItems> {
+  return (
+    AppServiceBindings.GetWikidataItems(limit, offset) as unknown as Promise<{
+      items: WikidataModels.WikidataItemView[] | null;
+      total: number | null;
+      properties: Record<string, string> | null;
+    }>
+  ).then((view) => ({
+    items: view.items ?? [],
+    total: view.total ?? 0,
+    properties: view.properties ?? {},
+  }));
+}
+
+/**
+ * Returns the directory the datasets are read from.
+ *
+ * It is the data directory of the application, which is where the ETL
+ * command leaves its output.
+ */
+export function getWikidataDataDir(): Promise<string> {
+  return AppServiceBindings.GetWikidataDataDir() as unknown as Promise<string>;
+}
+
+/**
+ * The progress of the last Wikidata import.
+ */
+export function getWikidataImportProgress(): Promise<WikidataPackage.ImportProgress> {
+  return (
+    AppServiceBindings.GetWikidataImportProgress() as unknown as Promise<WikidataPackage.ImportProgress>
+  );
+}
+
+/**
+ * Imports a Wikidata dataset into the database.
+ *
+ * The kind is 'items' or 'properties'. The import runs in the
+ * background, and the progress is pushed to the frontend as a Wails
+ * event.
+ */
+export function importWikidataFile(kind: string, path: string): Promise<void> {
+  return AppServiceBindings.ImportWikidataFile(kind, path) as unknown as Promise<void>;
+}
+
+/**
+ * Imports both datasets of a directory.
+ */
+export function importWikidataDirectory(path: string): Promise<void> {
+  return AppServiceBindings.ImportWikidataDirectory(path) as unknown as Promise<void>;
+}
+
+/**
+ * Stops the import that is running.
+ */
+export function cancelWikidataImport(): Promise<void> {
+  return AppServiceBindings.CancelWikidataImport() as unknown as Promise<void>;
+}
+
+/**
+ * Builds the shell pipeline that runs an ETL job.
+ *
+ * The command is the whole pipeline: the decompressor and the worker
+ * of this same binary. It is what the interface shows, and what the
+ * user copies to run the job in a terminal.
+ */
+export function buildEtlCommand(options: EtlJobOptions): Promise<string> {
+  return AppServiceBindings.BuildEtlCommand(options as never) as unknown as Promise<string>;
+}
+
+/**
+ * Runs an ETL job.
+ *
+ * The pipeline runs in the background, and the progress is pushed to
+ * the frontend as a Wails event.
+ */
+export function startEtlJob(options: EtlJobOptions): Promise<EtlProgress> {
+  return AppServiceBindings.StartEtlJob(options as never) as unknown as Promise<EtlProgress>;
+}
+
+/**
+ * Stops a running ETL job.
+ *
+ * The whole process tree is stopped: the decompressor and the worker
+ * die together.
+ */
+export function cancelEtlJob(runId: string): Promise<void> {
+  return AppServiceBindings.CancelEtlJob(runId) as unknown as Promise<void>;
+}
+
+/**
+ * Returns the runs of the ETL worker, the most recent first.
+ */
+export function listEtlHistory(limit: number): Promise<EtlHistoryEntry[]> {
+  return (
+    AppServiceBindings.ListEtlHistory(limit) as unknown as Promise<EtlHistoryEntry[] | null>
+  ).then((entries) => entries ?? []);
+}
+
+/**
+ * Removes a run from the ETL history.
+ */
+export function deleteEtlHistoryEntry(recordId: string): Promise<void> {
+  return AppServiceBindings.DeleteEtlHistoryEntry(recordId) as unknown as Promise<void>;
+}
+
+/**
  * The generated model classes, re-exported for callers that need them.
  */
-export { JobsModels, BindingsModels, ConsoleModels };
+export { JobsModels, BindingsModels, ConsoleModels, WikidataModels, WikidataPackage };

@@ -1,0 +1,21 @@
+/*
+ * The Tailwind layers.
+ *
+ * The preflight is not used: the application has its own stylesheet, and
+ * the reset of Tailwind would change the borders, the headings and the
+ * lists of the panels that are already there. The base layer is kept
+ * but empty, and the theme is declared below.
+ */
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * The shadcn theme.
+ *
+ * The values are HSL channels, so that the opacity modifiers of
+ * Tailwind work on them. The dark theme is the one the application
+ * uses: the WebKitGTK webview renders the native select popup with a
+ * light background when the page does not say otherwise, which makes
+ * the selected item look blank.
+ */
+

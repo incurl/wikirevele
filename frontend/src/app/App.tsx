@@ -17,15 +17,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Events } from '@wailsio/runtime';
 
 import '../styles.css';
+// The shadcn/ui theme: the Tailwind layers and the CSS variables the
+// components use. It is imported here so that the whole interface has
+// the same theme.
+import '../styles/tailwind.css';
 
 import * as api from '../bindings';
 import type { Job } from '../bindings';
 import { applyZoom } from '../ui/zoom';
 import { isConsoleShortcut } from '../ui/shortcuts';
 import { ConsolePanel, countErrors } from '../features/console/ConsolePanel';
+import { EtlHistoryPanel } from '../features/etl/EtlHistoryPanel';
+import { EtlPanel } from '../features/etl/EtlPanel';
 import { JobQueue } from '../features/queue/JobQueue';
 import { SettingsDialog } from '../features/settings/SettingsDialog';
 import { SubmitPanel } from '../features/submit/SubmitPanel';
+import { WikidataPanel } from '../features/wikidata/WikidataPanel';
 
 interface Toast {
   message: string;
@@ -255,6 +262,7 @@ function App() {
       </header>
 
       <aside className="app-rail">
+        <EtlPanel onNotify={(message, kind) => notify(message, kind)} />
         <SubmitPanel
           disabled={submitMutation.isPending}
           onSubmit={(prompt, params) => submitMutation.mutate({ prompt, params })}
@@ -262,6 +270,8 @@ function App() {
       </aside>
 
       <main className="app-canvas">
+        <WikidataPanel />
+
         <section className="panel">
           <div className="panel-header">
             <span>Getting started</span>
@@ -283,6 +293,8 @@ function App() {
       </main>
 
       <aside className="app-gallery">
+        <EtlHistoryPanel onNotify={(message, kind) => notify(message, kind)} />
+
         <section className="panel">
           <div className="panel-header">
             <span>Connection</span>

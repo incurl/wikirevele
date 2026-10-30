@@ -14,8 +14,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/incurl/valkyrie/internal/jobs"
-	valkyriepb "github.com/incurl/valkyrie/internal/pocketbase"
+	"github.com/incurl/wikirevele/internal/jobs"
+	wikirevelepb "github.com/incurl/wikirevele/internal/pocketbase"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 	}
 	defer os.RemoveAll(dir)
 
-	svc := valkyriepb.NewService(dir)
+	svc := wikirevelepb.NewService(dir)
 	if err := svc.Bootstrap(); err != nil {
 		panic(err)
 	}

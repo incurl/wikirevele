@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/incurl/valkyrie/internal/jobs"
+	"github.com/incurl/wikirevele/internal/jobs"
 )
 
 // TestExampleReturnsThePrompt verifies that the example runner echoes

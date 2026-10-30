@@ -16,6 +16,10 @@ build/android/gen/
 pb_data/
 frontend/bindings/
 
+# The Wikidata ETL worker writes its output in the working directory
+paris-wikidata-subset.ndjson
+wikidata-properties.ndjson
+
 # Go
 *.test
 *.out

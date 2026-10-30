@@ -36,6 +36,10 @@ Wails webview
 | Wails services | `internal/bindings/` | The API the frontend calls |
 | Debug console | `internal/console/` | An in-memory log of the application traffic, shown in the UI |
 | React shell | `frontend/src/` | A working three-column layout with the queue, the console and the settings |
+| Wikidata ETL worker | `internal/etl/` | The `etl` subcommand: reads a dump from the standard input and writes the two trimmed datasets |
+| ETL pipeline | `internal/etlpipeline/` | Builds the shell pipeline, runs it as a child process, and cancels it |
+| ETL history | `internal/etlhistory/` | The record of the runs, in PocketBase |
+| Wikidata import | `internal/wikidata/` | Imports the datasets into PocketBase and reads them back for the panel |
 
 The frontend talks to the backend **only** through the Wails bindings. It
 never talks to PocketBase or to a remote API directly.
@@ -224,6 +228,8 @@ Set `VALKYRIE_DATA_DIR` to relocate it.
 | `jobs` | The job metadata: the prompt, the parameters, the status, the result, the errors |
 | `artifacts` | The files a job produced or consumed, with their metadata |
 | `app_settings` | The encrypted secrets and the preferences |
+| `wikidata_items` | The imported Wikidata items, one record per item, keyed by `qid` |
+| `wikidata_properties` | The imported property dictionary, one record per property, keyed by `pid` |
 
 All writes go through the Go services: the `create`, `update` and `delete`
 rules are closed, so the frontend can only read. PocketBase's own rules,
@@ -252,11 +258,70 @@ WAILS_SERVER_HOST=0.0.0.0 WAILS_SERVER_PORT=8080 ./bin/valkyrie-server
 It serves the frontend and the PocketBase API over HTTP. A minimal
 container image is built with `task build:docker`.
 
+## The Wikidata dataset
+
+The dataset is produced in two stages, in **one binary**.
+
+**Stage 1 — the ETL worker**, the `etl` subcommand of the same
+executable. It reads the dump from the standard input in one pass,
+keeps the entities linked to the target, trims them to the fields the
+application needs, and writes two NDJSON files.
+
+```bash
+PATH="$HOME/go/bin:$PATH" wails3 task build:etl
+
+# The dump comes from the standard input, already decompressed.
+bzcat latest-all.json.bz2 | ./bin/wikirevele etl --target-qid Q90 --langs en,fr
+```
+
+It writes `paris-wikidata-subset.ndjson` and
+`wikidata-properties.ndjson`.
+
+**Stage 2 — the import**, in the application. It reads those files a
+line at a time and upserts them into the `wikidata_items` and
+`wikidata_properties` collections. The panel imports them from the
+import panel, and then works on the records of the database.
+
+The application never reads a dump and never trims anything: the
+trimming happens once, in the ETL stage.
+
+### The two ways to run it
+
+The worker is **dual use**. The desktop application runs it as a child
+process, and a user runs it by hand from a terminal. The code is the
+same in the two cases.
+
+**From the application.** The Extract panel collects the parameters,
+shows the shell pipeline they produce, and runs it. The command is
+shown in a copyable block: copy it and run it in a terminal to do the
+same job outside the application. A run is recorded in the history, and
+its output is imported into the database when it succeeds.
+
+```bash
+bzcat /path/to/latest-all.json.bz2 | /path/to/wikirevele etl \
+  --target-qid Q90 --langs en,fr \
+  --out-items ./items.ndjson --out-props ./props.ndjson --events
+```
+
+**From a terminal.** The same command, by hand:
+
+```bash
+bzcat latest-all.json.bz2 | ./bin/wikirevele etl --target-qid Q90 --langs en,fr
+```
+
+The decompressor is **not shipped**. The host has to provide `bzcat`,
+`zstdcat`, `gzip` or `xz`; the application checks that the one it
+needs is there before it starts a run.
+
+[docs/etl-manual.md](docs/etl-manual.md) is the manual of the worker,
+and [docs/wikidata.md](docs/wikidata.md) has the details of the two
+stages.
+
 ## Tests
 
 ```bash
-go test ./...                    # the queue, the schema, the settings, the console
-cd frontend && npm test           # the zoom, the queue helpers, the console
+go test ./...                    # the queue, the schema, the settings, the console, the import, the ETL
+cd frontend && npm test           # the zoom, the queue helpers, the console, the ETL panel
 python3 tools/license-audit.py    # no copyleft dependency
 go run ./tools/e2e-check          # a live end-to-end run of the backend
 ```
@@ -271,6 +336,8 @@ fetches it back through PocketBase's file route.
 | --- | --- |
 | [docs/architecture.md](docs/architecture.md) | Why the pieces are shaped the way they are |
 | [docs/porting.md](docs/porting.md) | The checklist for taking this template to a new application |
+| [docs/etl-manual.md](docs/etl-manual.md) | The operator's guide to the ETL worker: how to run it, what it writes, and what to do when it misbehaves |
+| [docs/wikidata.md](docs/wikidata.md) | The Wikidata dataset pipeline: what the ETL worker trims, what the application imports, and the boundary between them |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | The failures that cost time, and what fixes them |
 | [docs/audit.md](docs/audit.md) | The audit of the scaffold: the defects and their reproductions |
 | [docs/code-review.md](docs/code-review.md) | The trade-offs that were deliberately kept, and why |

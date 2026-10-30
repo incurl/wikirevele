@@ -12,7 +12,7 @@ priority: "extra"
 maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
 description: "A Wails v3 desktop application"
 vendor: "incurl"
-homepage: "https://github.com/incurl/valkyrie"
+homepage: "https://github.com/incurl/wikirevele"
 license: "MIT"
 release: "1"
 

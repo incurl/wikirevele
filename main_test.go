@@ -70,6 +70,70 @@ func TestCombineHandlersRoutesAPIToPocketBase(t *testing.T) {
 	}
 }
 
+// TestSPAHandlerServesTheIndexForTheRoutes verifies that a path that
+// no file matches is answered with the index, so that the routes of
+// the frontend work in server mode.
+//
+// A deep link such as /wikidata/Q90 is a route of the frontend and not
+// a file. Without the index, it is a 404, and a reload of the page
+// loses it.
+func TestSPAHandlerServesTheIndexForTheRoutes(t *testing.T) {
+	index := []byte("<!doctype html><html><body>index</body></html>")
+
+	staticHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/":
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = w.Write(index)
+		case "/assets/app.js":
+			w.Header().Set("Content-Type", "application/javascript")
+			_, _ = w.Write([]byte("console.log('app')"))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	handler := spaHandler(staticHandler, index)
+
+	// A route of the frontend is answered with the index.
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/wikidata/Q90", nil))
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if !strings.Contains(rec.Body.String(), "index") {
+		t.Errorf("body = %q", rec.Body.String())
+	}
+
+	// The index itself is served as it is.
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	// A file is served as it is, with its own content type.
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/assets/app.js", nil))
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := rec.Header().Get("Content-Type"); got != "application/javascript" {
+		t.Errorf("content type = %q, want %q", got, "application/javascript")
+	}
+	if !strings.Contains(rec.Body.String(), "console.log") {
+		t.Errorf("body = %q", rec.Body.String())
+	}
+
+	// A missing asset stays a 404: a silent index would hide a broken
+	// build and would answer a script request with HTML.
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/assets/missing.js", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+}
+
 // TestDataDirHonoursTheEnvironmentVariable verifies that the data
 // directory can be relocated, so that the app can run against an
 // isolated database during development and testing.

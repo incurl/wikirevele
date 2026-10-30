@@ -15,6 +15,9 @@ export default defineConfig({
     alias: {
       // Add the module specifiers of your own vendored packages here.
       '@app': fileURLToPath(new URL('./src/app', import.meta.url)),
+      // The shadcn/ui components and the Refine components import
+      // through the "@/" prefix, as the shadcn CLI writes them.
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
 });

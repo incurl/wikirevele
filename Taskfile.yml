@@ -54,6 +54,19 @@ tasks:
     cmds:
       - task: common:build:server
 
+  build:etl:
+    summary: Builds the binary with the etl subcommand
+    description: |
+      The ETL worker is the "etl" subcommand of the same binary as the
+      desktop application. It reads the Wikidata dump from the standard
+      input and writes the two trimmed datasets the application imports.
+
+      It is the same binary, and the flag only decides which of the
+      two modes runs:
+        wikirevele etl --target-qid Q90 --langs en,fr
+    cmds:
+      - go build -o {{.BIN_DIR}}/wikirevele .
+
   run:server:
     summary: Runs the application in server mode
     cmds:

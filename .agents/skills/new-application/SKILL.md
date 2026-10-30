@@ -30,7 +30,7 @@ back — nothing more. Features come after that.
 
 ```bash
 cd /home/peter/GolandProjects
-git clone https://github.com/incurl/valkyrie.git <name>
+git clone https://github.com/incurl/wikirevele.git <name>
 cd <name>
 git remote set-url origin https://github.com/incurl/<name>.git
 ```

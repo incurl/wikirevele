@@ -24,7 +24,7 @@ import (
 
 	// Importing the migrations package registers the Valkyrie schema
 	// migrations with PocketBase's own migration list.
-	_ "github.com/incurl/valkyrie/internal/pocketbase/migrations"
+	_ "github.com/incurl/wikirevele/internal/pocketbase/migrations"
 )
 
 // Service owns the embedded PocketBase application.

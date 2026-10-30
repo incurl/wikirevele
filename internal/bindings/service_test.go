@@ -5,9 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/incurl/valkyrie/internal/console"
-	"github.com/incurl/valkyrie/internal/jobs"
-	"github.com/incurl/valkyrie/internal/pocketbase"
+	"github.com/incurl/wikirevele/internal/console"
+	"github.com/incurl/wikirevele/internal/etlhistory"
+	"github.com/incurl/wikirevele/internal/etlpipeline"
+	"github.com/incurl/wikirevele/internal/jobs"
+	"github.com/incurl/wikirevele/internal/pocketbase"
+	"github.com/incurl/wikirevele/internal/wikidata"
 )
 
 // newTestService creates an application service backed by a throwaway
@@ -32,7 +35,19 @@ func newTestService(t *testing.T, runner jobs.Runner) (*AppService, *jobs.Manage
 	log := console.New()
 	manager := jobs.NewManager(pb.App(), jobs.WithRunner(runner), jobs.WithLog(log))
 
-	return NewAppService(pb, settings, manager, log), manager
+	// The Wikidata service is there, but the panel is not exercised
+	// here and there is no dataset to import.
+	//
+	// The ETL service is there too: the methods that use it are
+	// checked by the etlpipeline package, and the wiring is checked
+	// by the application itself.
+	etlService := etlpipeline.NewService(
+		etlpipeline.NewSupervisor(),
+		etlhistory.NewService(pb.App()),
+		nil,
+	)
+
+	return NewAppService(pb, settings, manager, log, wikidata.NewService(pb.App()), etlService), manager
 }
 
 // okRunner is a runner that always succeeds.

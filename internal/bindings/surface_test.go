@@ -14,17 +14,28 @@ import (
 // deliberate act, and a method that returns an internal type is a
 // mistake this test catches.
 var expectedMethods = []string{
+	"BuildEtlCommand",
+	"CancelEtlJob",
 	"CancelJob",
+	"CancelWikidataImport",
 	"ClearConsoleEntries",
 	"DeleteArtifact",
+	"DeleteEtlHistoryEntry",
 	"DeleteJob",
 	"GetSettings",
+	"GetWikidataDataDir",
+	"GetWikidataImportProgress",
+	"GetWikidataItems",
+	"ImportWikidataDirectory",
+	"ImportWikidataFile",
 	"ListArtifacts",
 	"ListConsoleEntries",
+	"ListEtlHistory",
 	"ListJobs",
 	"RetryJob",
 	"SaveCredentials",
 	"SaveUI",
+	"StartEtlJob",
 	"SubmitJob",
 }
 
@@ -70,12 +81,32 @@ func TestNoBoundMethodReturnsAnInternalType(t *testing.T) {
 
 	// The value types the frontend genuinely needs.
 	allowed := map[string]bool{
+		// A plain string survives the serialisation: it is a path
+		// or a name, and the frontend can use it as it is.
+		"string": true,
+
 		"bindings.SettingsView": true,
 		"jobs.Artifact":         true,
 		"jobs.Job":              true,
 		"jobs.Request":          true,
 		"console.Entry":         true,
 		"pocketbase.UI":         true,
+
+		// The view of the imported items. The type is declared here
+		// rather than in the wikidata package, because a bound method
+		// must not return the type of an internal package.
+		"bindings.WikidataItemsView": true,
+
+		// The progress of an import is a struct of plain values, so it
+		// survives the serialisation.
+		"wikidata.ImportProgress": true,
+
+		// The views of the ETL pipeline. They are declared in this
+		// package, like the views of the items, because a bound
+		// method must not return the type of an internal package.
+		"bindings.EtlJobOptions":   true,
+		"bindings.EtlProgress":     true,
+		"bindings.EtlHistoryEntry": true,
 	}
 
 	for i := 0; i < typ.NumMethod(); i++ {

@@ -4,6 +4,8 @@
 | --- | --- |
 | [`architecture.md`](architecture.md) | Why the pieces are shaped the way they are. Read it before changing the structure. |
 | [`porting.md`](porting.md) | The checklist for taking the template to a new application. |
+| [`etl-manual.md`](etl-manual.md) | The operator's guide to the Wikidata ETL worker: how to run it, what it writes, and what to do when it misbehaves. |
+| [`wikidata.md`](wikidata.md) | The dataset pipeline: what the ETL worker trims, what the application imports, and the boundary between them. |
 | [`troubleshooting.md`](troubleshooting.md) | The failures that cost time, and what actually fixes them. |
 | [`audit.md`](audit.md) | The 2026-10-28 audit: the defects, the reproductions, and what was fixed. |
 | [`code-review.md`](code-review.md) | The 2026-10-28 code review: the trade-offs that were deliberately kept, and why. |

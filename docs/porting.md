@@ -6,7 +6,7 @@ The fastest way to start is to copy the repository and rename it. Copying keeps 
 are the parts that take the longest to get right.
 
 ```bash
-git clone https://github.com/incurl/valkyrie.git my-app
+git clone https://github.com/incurl/wikirevele.git my-app
 cd my-app
 git remote set-url origin https://github.com/incurl/my-app.git
 ```
@@ -85,9 +85,9 @@ import (
     "context"
     "fmt"
 
-    "github.com/incurl/valkyrie/internal/console"
-    "github.com/incurl/valkyrie/internal/jobs"
-    "github.com/incurl/valkyrie/internal/pocketbase"
+    "github.com/incurl/wikirevele/internal/console"
+    "github.com/incurl/wikirevele/internal/jobs"
+    "github.com/incurl/wikirevele/internal/pocketbase"
 )
 
 // MyRunner talks to the remote API.
