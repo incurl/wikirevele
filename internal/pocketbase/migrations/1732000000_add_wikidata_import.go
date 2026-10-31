@@ -20,7 +20,7 @@ func init() {
 // createWikidataImportSchema creates the collections of the imported
 // Wikidata datasets.
 //
-// The two collections hold what the ETL command produced: the items
+// The two collections hold what the ETL worker produced: the items
 // that are linked to Paris, and the property dictionary. They are
 // written by the importer only, so they are not exposed to the
 // frontend: the list rule and the view rule are left empty, which

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// The line of an item, as the ETL command writes it.
+// The line of an item, as the ETL worker writes it.
 const testItemLine = `{"id":"Q90","type":"item",` +
 	`"labels":{"en":{"language":"en","value":"Paris"}},` +
 	`"descriptions":{"en":{"language":"en","value":"The capital of France"}},` +
@@ -16,7 +16,7 @@ const testItemLine = `{"id":"Q90","type":"item",` +
 	`"datatype":"wikibase-item","datavalue":{"value":{"entity-type":"item","id":"Q90"},` +
 	`"type":"wikibase-entityid"}}}]}}`
 
-// The line of a property, as the ETL command writes it.
+// The line of a property, as the ETL worker writes it.
 const testPropertyLine = `{"id":"P131","type":"property",` +
 	`"labels":{"en":{"language":"en","value":"located in the administrative territorial entity"}},` +
 	`"descriptions":{},"claims":{}}`

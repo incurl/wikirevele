@@ -23,7 +23,7 @@ func newTestApp(t *testing.T) *wikirevelepb.Service {
 	return service
 }
 
-// An item line, as the ETL command writes it.
+// An item line, as the ETL worker writes it.
 func itemLine(id string) string {
 	return `{"id":"` + id + `","type":"item",` +
 		`"labels":{"en":{"language":"en","value":"Item ` + id + `"}},` +
@@ -33,7 +33,7 @@ func itemLine(id string) string {
 		`"type":"wikibase-entityid"}}}]}}`
 }
 
-// A property line, as the ETL command writes it.
+// A property line, as the ETL worker writes it.
 func propertyLine(id string) string {
 	return `{"id":"` + id + `","type":"property",` +
 		`"labels":{"en":{"language":"en","value":"Property ` + id + `"}},` +

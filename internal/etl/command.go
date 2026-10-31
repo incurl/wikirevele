@@ -95,7 +95,19 @@ writes nothing but the two output files.
 		// The dump comes from the standard input, so the command
 		// takes no argument. An argument is a mistake, and it is
 		// reported rather than ignored.
-		Args: cobra.NoArgs,
+		//
+		// The message says where the dump comes from, because
+		// Cobra's own message ("unknown command") does not: a user
+		// who typed a file name needs to know that it has to be
+		// piped in.
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				return fmt.Errorf(
+					"the command takes no argument, the dump is read from the standard input: %q",
+					args[0])
+			}
+			return nil
+		},
 	}
 
 	flags := command.Flags()

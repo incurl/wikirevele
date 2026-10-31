@@ -27,7 +27,7 @@ var compressedMagics = [][]byte{
 // process, and the dump is piped in.
 var ErrCompressedInput = fmt.Errorf(
 	"the input is compressed: pipe it through a decompressor, " +
-		"for example \"bzcat latest-all.json.bz2 | wikirevele-etl\"")
+		"for example \"bzcat latest-all.json.bz2 | wikirevele etl\"")
 
 // DetectCompression tells whether a stream is compressed.
 //

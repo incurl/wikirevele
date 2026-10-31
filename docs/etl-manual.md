@@ -735,7 +735,7 @@ full paths:
 
 ```bash
 bzcat latest-all.json.bz2 | ./bin/wikirevele etl \
-  -items /tmp/out/items.ndjson -properties /tmp/out/props.ndjson
+  --out-items /tmp/out/items.ndjson --out-props /tmp/out/props.ndjson
 ```
 
 ### The application shows nothing after the import
@@ -811,7 +811,7 @@ To try it on a small file:
 
 ```bash
 bzcat latest-all.json.bz2 | head -n 100000 | ./bin/wikirevele etl \
-  -items /tmp/small-items.ndjson -properties /tmp/small-props.ndjson
+  --out-items /tmp/small-items.ndjson --out-props /tmp/small-props.ndjson
 ```
 
 ---

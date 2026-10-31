@@ -3,7 +3,7 @@
 //
 // The package is deliberately free of any dump processing: it does not
 // decompress anything, it does not read a Wikidata dump, and it does
-// not filter entities. That is the job of the standalone ETL command,
+// not filter entities. That is the job of the ETL worker,
 // which writes the two NDJSON files this package imports:
 //
 //	paris-wikidata-subset.ndjson
@@ -39,7 +39,7 @@ type Term struct {
 //
 // The shape is the shape of the NDJSON line: the identifier, the kind,
 // the terms and the claims. The claims are kept as they were written,
-// so that the panel reads the same structure the ETL command produced.
+// so that the panel reads the same structure the ETL worker produced.
 type ItemRecord struct {
 	// ID is the identifier of the item, such as "Q90".
 	ID string `json:"id"`

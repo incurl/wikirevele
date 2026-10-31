@@ -141,8 +141,7 @@ func run() error {
 	// database and reads them back for the panel.
 	//
 	// The application does not process a dump: that is the job of the
-	// standalone ETL command, which writes the NDJSON files this
-	// service imports.
+	// ETL worker, which writes the NDJSON files this service imports.
 	wikidataService := wikidata.NewService(pbService.App())
 	wikidataService.SetDataDir(dataDir())
 

@@ -24,7 +24,7 @@ const (
 	KindProperties = "properties"
 )
 
-// The names of the files the ETL command writes.
+// The names of the files the ETL worker writes.
 //
 // The importer looks for these names when it is given a directory, so
 // that the panel and the command agree on where the datasets are.
@@ -71,7 +71,7 @@ func NewService(app core.App) *Service {
 
 // SetDataDir sets the directory the datasets are read from.
 //
-// It is the data directory of the application: the ETL command leaves
+// It is the data directory of the application: the ETL worker leaves
 // its output there, and the panel imports it from there.
 func (s *Service) SetDataDir(dir string) {
 	s.mu.Lock()
@@ -81,7 +81,7 @@ func (s *Service) SetDataDir(dir string) {
 
 // DataDir returns the directory the datasets are read from.
 //
-// It is the data directory of the application: the ETL command is
+// It is the data directory of the application: the ETL worker is
 // expected to leave its output there, and the panel imports it from
 // there.
 func (s *Service) DataDir() string {
@@ -149,7 +149,7 @@ func (s *Service) ImportFile(kind, path string) error {
 
 // ImportDirectory imports both datasets of a directory.
 //
-// The files are the ones the ETL command writes. A file that is not
+// The files are the ones the ETL worker writes. A file that is not
 // there is not an error: the panel shows what it has.
 func (s *Service) ImportDirectory(dir string) error {
 	if dir == "" {

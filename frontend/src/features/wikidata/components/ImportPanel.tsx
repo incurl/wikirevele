@@ -1,7 +1,7 @@
 /**
  * The import panel of the Wikidata dataset.
  *
- * The panel starts an import of the NDJSON files the ETL command
+ * The panel starts an import of the NDJSON files the ETL worker
  * writes, and shows how it goes. The import runs in the backend, so
  * the window stays responsive while a large file is being imported.
  *
@@ -70,7 +70,7 @@ export function ImportPanel({ onImported }: ImportPanelProps) {
   }, []);
 
   // The path of the dataset is the data directory of the application:
-  // the ETL command leaves its output there, and the user does not have
+  // the ETL worker leaves its output there, and the user does not have
   // to type it.
   useEffect(() => {
     let cancelled = false;

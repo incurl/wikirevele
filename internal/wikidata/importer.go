@@ -308,7 +308,7 @@ func (i *Importer) paramsFor(line []byte) (dbx.Params, bool, error) {
 	}
 
 	// The terms and the claims are stored as they were written, so
-	// that the panel reads the same structure the ETL command
+	// that the panel reads the same structure the ETL worker
 	// produced.
 	for _, field := range []string{FieldLabels, FieldDescriptions, FieldAliases, FieldClaims} {
 		value, ok := raw[field]

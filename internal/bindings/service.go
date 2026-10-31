@@ -302,7 +302,7 @@ func (s *AppService) ImportWikidataFile(kind, path string) error {
 
 // ImportWikidataDirectory imports both datasets of a directory.
 //
-// The files are the ones the ETL command writes. It is the way the
+// The files are the ones the ETL worker writes. It is the way the
 // panel imports a dataset that was produced elsewhere.
 func (s *AppService) ImportWikidataDirectory(path string) error {
 	if s.wikidata == nil {

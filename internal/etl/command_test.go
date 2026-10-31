@@ -232,3 +232,28 @@ func TestTheCommandIsQuietOnTheStandardOutputByDefault(t *testing.T) {
 		t.Errorf("the standard output is %q, want it empty", stdout.String())
 	}
 }
+
+func TestTheCommandExplainsThatTheDumpIsPipedIn(t *testing.T) {
+	// A user who typed a file name needs to know that it has to be
+	// piped in. The message of Cobra on its own does not say it.
+	command := NewCommand()
+	command.SetArgs([]string{"latest-all.json.bz2"})
+	command.SetOut(&bytes.Buffer{})
+	command.SetErr(&bytes.Buffer{})
+
+	err := command.Execute()
+	if err == nil {
+		t.Fatal("the command accepted an argument")
+	}
+	if !strings.Contains(err.Error(), "standard input") {
+		t.Errorf("the error is %q, want it to say the dump is read from the standard input", err)
+	}
+}
+
+func TestTheCompressedInputErrorNamesTheCommand(t *testing.T) {
+	// The error shows the user what to type. It has to name the
+	// command that exists.
+	if !strings.Contains(ErrCompressedInput.Error(), "wikirevele etl") {
+		t.Errorf("the error is %q, want it to name the command", ErrCompressedInput)
+	}
+}
