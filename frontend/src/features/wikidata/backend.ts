@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as api from "../../bindings";
 import type { WikidataItems } from "../../bindings";
 import type { EntityId, WikidataItem } from "./types";
+import type { Page, PageRequest, PaginatedSource } from "./source";
 import type { EntityView } from "./view";
 import { InMemorySource } from "./ndjson";
 
@@ -42,11 +43,67 @@ export function sourceFromItems(items: WikidataItems): InMemorySource {
 }
 
 /**
+ * The source that asks the backend for a page at a time.
+ *
+ * The filtering, the sorting and the counting happen in the database,
+ * so the gallery shows a dataset of any size: it never holds more than
+ * the page it renders.
+ */
+class BackendSource implements PaginatedSource {
+  readonly name = "pocketbase";
+
+  // The whole dataset is never read: the gallery asks for a page, and
+  // these two methods are only here because the interface has them.
+  async listItems(): Promise<WikidataItem[]> {
+    const page = await api.getWikidataItemsPage({ limit: PAGE_SIZE, offset: 0, sortField: "qid", sortDescending: false, filters: [] });
+    return itemsOf(page.items);
+  }
+
+  async getItem(id: EntityId): Promise<WikidataItem | null> {
+    const page = await api.getWikidataItems(1, 0);
+    const match = page.items.find((item) => item.qid === id);
+    return match ? (itemsOf([match])[0] ?? null) : null;
+  }
+
+  async listPage(request: PageRequest): Promise<Page> {
+    const page = await api.getWikidataItemsPage({
+      limit: request.limit,
+      offset: request.offset,
+      sortField: request.sortField,
+      sortDescending: request.sortDescending,
+      filters: request.filters.map((filter) => ({ property: filter.property, value: filter.value })),
+    });
+
+    return { items: itemsOf(page.items), total: page.total };
+  }
+}
+
+/**
+ * Turns the records the backend sent into the items the panel reads.
+ */
+function itemsOf(items: readonly WikidataItems["items"][number][]): WikidataItem[] {
+  return items.map(
+    (item) =>
+      ({
+        id: item.qid,
+        type: "item",
+        labels: Object.fromEntries(
+          Object.entries(item.labels ?? {}).map(([language, value]) => [language, { language, value }]),
+        ),
+        descriptions: Object.fromEntries(
+          Object.entries(item.descriptions ?? {}).map(([language, value]) => [language, { language, value }]),
+        ),
+        claims: (item.claims ?? {}) as WikidataItem["claims"],
+      }) as unknown as WikidataItem,
+  );
+}
+
+/**
  * The state of the dataset, while it is being read.
  */
 export interface DatasetState {
   /** The source, once the dataset is known. */
-  readonly source: InMemorySource | null;
+  readonly source: PaginatedSource | null;
   /** The names of the properties, by identifier. */
   readonly propertyLabels: Record<string, string>;
   /** The number of items in the dataset. */
@@ -90,8 +147,11 @@ export function useWikidataDataset(): DatasetState {
 
   // The source is built again whenever the records change, so that the
   // provider reads the new ones after an import.
+  //
+  // It filters and pages in the backend, so the gallery never holds
+  // more than the page it renders.
   const source = useMemo(
-    () => (items ? sourceFromItems(items) : null),
+    () => (items ? new BackendSource() : null),
     [items],
   );
 

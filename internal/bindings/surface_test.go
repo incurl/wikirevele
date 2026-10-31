@@ -26,6 +26,7 @@ var expectedMethods = []string{
 	"GetWikidataDataDir",
 	"GetWikidataImportProgress",
 	"GetWikidataItems",
+	"GetWikidataItemsPage",
 	"ImportWikidataDirectory",
 	"ImportWikidataFile",
 	"ListArtifacts",
@@ -107,6 +108,15 @@ func TestNoBoundMethodReturnsAnInternalType(t *testing.T) {
 		"bindings.EtlJobOptions":   true,
 		"bindings.EtlProgress":     true,
 		"bindings.EtlHistoryEntry": true,
+
+		// The page of the workarea, and the filters it takes. The
+		// request and the filter are declared here too, because a
+		// bound method must not take the type of an internal
+		// package.
+		"bindings.WikidataPageView":    true,
+		"bindings.WikidataPageRequest": true,
+		"bindings.WikidataClaimFilter": true,
+		"bindings.WikidataItemView":    true,
 	}
 
 	for i := 0; i < typ.NumMethod(); i++ {

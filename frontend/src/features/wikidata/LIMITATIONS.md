@@ -95,14 +95,25 @@ Two implementations are planned:
   goes through `internal/bindings`. The method would answer "give me
   the items that match these filters", and the panel would call it
   through `frontend/src/bindings/index.ts`.
-- **The whole dataset is read in one page.** `GetWikidataItems` takes a
-  limit and an offset, and the panel asks for the first page of two
-  hundred items. The panel filters them in memory, so a filter cannot
-  reach an item that is not on the page.
+- **The filter is a "contains" on the claim.** The backend asks for
+  `claims.<property> ~ "<value>"`, which is the JSON column containing
+  the value, and not the value of one statement of that property. An
+  item whose `P131` is `Q1` and whose `P915` is `Q90` matches a filter
+  on `P131` being `Q90`, and it should not.
 
-  The bound method would have to answer "give me the items that match
-  these filters" instead. That is the right answer for a dataset of a
-  whole city, and it is a change in `internal/wikidata`.
+  A precise filter would need the values of the claims to be readable
+  by the database, which means either a table of the statements or an
+  index on them.
+
+- **The sort is on the identifier.** The order by label would need an
+  index on the label the panel shows, which is the first of the
+  preferred languages that the item has. The identifier is the stable
+  order, and it is the one the panel uses.
+
+- **The filters are combined with "and".** Refine can express a group
+  combined with "or", and the backend flattens the group: the claims
+  are always all required. An "or" across two properties would need the
+  bound method to take the tree and not the list.
 - **A second pass for the coordinates.** The `P625` values of the
   places are not resolved. The extractor explicitly leaves them out, and
   a separate program is meant to fill them. The panel shows the

@@ -218,16 +218,22 @@ func run() error {
 	etlSupervisor.SetEmitter(bridge)
 	etlSupervisor.SetLogSink(bridge)
 
+	// The window is half again the size of the scaffold's, because the
+	// workarea is the centre of the interface and the rails take room
+	// from it.
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:  bindings.AppName,
-		Width:  1440,
-		Height: 900,
+		Width:  2160,
+		Height: 1350,
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 50,
 			Backdrop:                application.MacBackdropTranslucent,
 			TitleBar:                application.MacTitleBarHiddenInset,
 		},
-		BackgroundColour: application.NewRGB(6, 7, 15),
+		// The colour the webview paints before the frontend does,
+		// so that the window does not flash white while it loads.
+		// It is --background-color-base of the Codex dark theme.
+		BackgroundColour: application.NewRGB(16, 20, 24),
 		URL:              "/",
 	})
 

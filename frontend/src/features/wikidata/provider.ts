@@ -31,6 +31,8 @@ import type {
 
 import type { EntityId, WikidataItem } from "./types";
 import type { WikidataSource } from "./source";
+import { isPaginated } from "./source";
+import type { ClaimFilterRequest } from "./source";
 import { toEntityView } from "./view";
 
 /**
@@ -304,6 +306,48 @@ function sortableValue(item: WikidataItem, field: string): string {
  * on every call, so that an import is visible without a reload: the
  * dataset of a whole city is small enough for that to be fine.
  */
+/**
+ * Reads the claim filters of a list of Refine filters.
+ *
+ * Only the filters that are about a claim are passed to the backend: a
+ * filter on the identifier or on a label is not a claim, and the
+ * backend does not have a column for it.
+ *
+ * The groups are flattened, because the backend combines the claims
+ * with "and" and there is nothing to preserve.
+ */
+export function claimFiltersOf(filters: readonly CrudFilter[]): ClaimFilterRequest[] {
+  const out: ClaimFilterRequest[] = [];
+
+  for (const filter of filters) {
+    if (filter.operator === "and" || filter.operator === "or") {
+      if (Array.isArray(filter.value)) {
+        out.push(...claimFiltersOf(filter.value as CrudFilter[]));
+      }
+      continue;
+    }
+
+    const field = filterField(filter);
+    if (field === null) {
+      continue;
+    }
+
+    const property = claimPropertyOf(field);
+    if (!property) {
+      continue;
+    }
+
+    const value = filterValue(filter);
+    if (typeof value !== "string" || value === "") {
+      continue;
+    }
+
+    out.push({ property, value });
+  }
+
+  return out;
+}
+
 export function createWikidataProvider(source: WikidataSource): DataProvider {
   /**
    * Reads the items of the source.
@@ -316,17 +360,39 @@ export function createWikidataProvider(source: WikidataSource): DataProvider {
     getList: async <TData extends BaseRecord = BaseRecord>(
       params: GetListParams,
     ): Promise<GetListResponse<TData>> => {
+      const current = params.pagination?.currentPage ?? 1;
+      const size = params.pagination?.pageSize ?? 25;
+      const offset = (current - 1) * size;
+
+      // A source that filters and pages in the backend is asked for
+      // the page. The filtering, the sorting and the counting happen
+      // there, and the panel only renders what comes back.
+      if (isPaginated(source)) {
+        const sorter = params.sorters?.[0];
+
+        const page = await source.listPage({
+          limit: size,
+          offset,
+          sortField: sorter?.field ?? "qid",
+          sortDescending: sorter?.order === "desc",
+          filters: claimFiltersOf(params.filters ?? []),
+        });
+
+        return {
+          data: page.items.map((item) => toRecord(item)) as unknown as TData[],
+          total: page.total,
+        };
+      }
+
+      // The in-memory source holds a subset that is small enough to
+      // filter in the page.
       const all = await items();
 
       const filters = params.filters ?? [];
       const filtered = filters.length === 0 ? all : all.filter((item) => filters.every((f) => matchesFilter(item, f)));
 
       const sorted = sortItems(filtered, params.sorters);
-
-      const current = params.pagination?.currentPage ?? 1;
-      const size = params.pagination?.pageSize ?? 25;
-      const start = (current - 1) * size;
-      const page = sorted.slice(start, start + size);
+      const page = sorted.slice(offset, offset + size);
 
       return {
         data: page.map((item) => toRecord(item)) as unknown as TData[],

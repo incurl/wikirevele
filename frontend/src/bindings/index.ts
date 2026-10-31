@@ -212,6 +212,66 @@ export function getWikidataItems(limit: number, offset: number): Promise<Wikidat
 }
 
 /**
+ * A filter on the value of one property of an item.
+ *
+ * An item has no columns: its properties are claims, so a filter on a
+ * property is a filter on a claim.
+ */
+export type WikidataClaimFilter = BindingsModels.WikidataClaimFilter;
+
+/**
+ * A request for one page of the items.
+ *
+ * The shape is the one the interface writes in, and it is translated to
+ * the one the backend reads in `getWikidataItemsPage`: the generator
+ * names the fields after the Go tags, which are the names of the wire
+ * and not the names of the code.
+ */
+export interface WikidataPageRequest {
+  readonly limit: number;
+  readonly offset: number;
+  readonly sortField: string;
+  readonly sortDescending: boolean;
+  readonly filters: readonly WikidataClaimFilter[];
+}
+
+/**
+ * One page of the imported items.
+ */
+export type WikidataPage = {
+  items: BindingsModels.WikidataItemView[];
+  total: number;
+  properties: Record<string, string>;
+};
+
+/**
+ * Returns one page of the imported items.
+ *
+ * The filtering, the sorting and the counting happen in the database:
+ * the gallery shows a dataset of a whole city, and reading all of it to
+ * keep the twentieth part would not scale.
+ */
+export function getWikidataItemsPage(request: WikidataPageRequest): Promise<WikidataPage> {
+  return (
+    AppServiceBindings.GetWikidataItemsPage({
+      limit: request.limit,
+      offset: request.offset,
+      sort_field: request.sortField,
+      sort_descending: request.sortDescending,
+      filters: request.filters.map((filter) => ({ property: filter.property, value: filter.value })),
+    } as never) as unknown as Promise<{
+      items: BindingsModels.WikidataItemView[] | null;
+      total: number | null;
+      properties: Record<string, string> | null;
+    }>
+  ).then((view) => ({
+    items: view.items ?? [],
+    total: view.total ?? 0,
+    properties: view.properties ?? {},
+  }));
+}
+
+/**
  * Returns the directory the datasets are read from.
  *
  * It is the data directory of the application, which is where the ETL

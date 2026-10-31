@@ -249,6 +249,33 @@ The selection of the cards is kept out of the components, in `features/wikidata/
 with the command or the control key toggles it among many, and the bar above the grid selects the whole page or clears the
 selection.
 
+## The gallery renders, Refine queries
+
+The workarea shows a dataset of a whole city, so the four jobs of a list
+are divided between three libraries, and each does one of them:
+
+| Job | Owner |
+| --- | --- |
+| Filtering, sorting, pagination | Refine's `useTable`, answered by the backend |
+| The row model of the cards | TanStack Table |
+| What is on screen | TanStack Virtual |
+
+The division is not cosmetic. Refine sends the filters, the sorters and
+the page to Go, which queries PocketBase and answers with one page and
+a count; TanStack Table is given that page and sorts and pages nothing,
+because the server already did; and the virtualiser renders the visual
+rows of the grid that are in the viewport, so a page of a thousand
+cards costs the same as a page of twenty.
+
+`useTable` is from `@refinedev/core`. `@refinedev/react-table` is in the
+dependency list and is **not** used: its `useTable` wraps TanStack
+Table, and the table here is the renderer, not the query.
+
+TanStack Query is present because **Refine is built on it**: it is a
+peer dependency of `@refinedev/core`, and Refine uses it for the cache
+of the queries. The application does not use it for its own data, and
+it must not: the data of a resource goes through `useTable`.
+
 ## What the build tooling does
 
 - `build/config.yml` is the Wails project configuration: the product name, the bundle identifier, the version and the dev-mode

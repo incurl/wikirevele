@@ -30,18 +30,24 @@
   /*
    * The palette, in the names this interface uses.
    *
-   * The sense of the Codex tokens is worth stating, because it is the
-   * opposite of what the names suggest: "base" is the colour of the
-   * surface the text stands on, and "inverted" is the colour of the
-   * text itself. In the dark theme the base is a pale grey and the
-   * text is near black, because the surface is the pale one.
+   * The Codex tokens come in two families, and using the wrong one is
+   * what makes a theme look broken:
+   *
+   *   --color-*             the colour of the *text*
+   *   --background-color-*  the colour of the *surface*
+   *   --border-color-*      the colour of the *line*
+   *
+   * The text tokens are pale in the dark theme, because the text is.
+   * A surface painted with one of them is a near-white panel on a
+   * near-black page, which is not a dark theme. The surfaces and the
+   * lines take the tokens of their own family.
    */
-  --bg: var(--color-inverted);
-  --bg-raised: var(--color-emphasized);
-  --bg-input: var(--color-base--subtle);
-  --bg-hover: var(--color-base--hover);
-  --border: var(--color-base--subtle);
-  --border-strong: var(--color-subtle);
+  --bg: var(--background-color-base);
+  --bg-raised: var(--background-color-neutral-subtle);
+  --bg-input: var(--background-color-interactive);
+  --bg-hover: var(--background-color-interactive--hover);
+  --border: var(--border-color-muted);
+  --border-strong: var(--border-color-base);
   --text: var(--color-base);
   --text-muted: var(--color-neutral);
   --text-dim: var(--color-subtle);
@@ -62,37 +68,40 @@
    * back to nothing.
    *
    * They are the HSL channels of the Codex tokens, because the opacity
-   * modifiers of Tailwind work on the channels and not on a colour.
-   * The values are written out rather than computed, because a CSS
-   * custom property cannot be converted from a hex colour.
+   * modifiers of Tailwind work on the channels and not on a colour. A
+   * CSS custom property cannot be converted from a hex colour, so the
+   * values are written out; the token each one mirrors is named.
    *
-   * The tokens they mirror:
-   *
-   *   --background         --color-inverted      #101418
-   *   --foreground         --color-base          #eaecf0
-   *   --muted-foreground   --color-base--subtle  #a2a9b1
-   *   --primary            --color-progressive   #88a3e8
-   *   --destructive        --color-destructive   #fd7865
+   *   --background        --background-color-base          #101418
+   *   --card              --background-color-neutral-subtle #202122
+   *   --popover           --background-color-neutral-subtle #202122
+   *   --secondary/--muted --background-color-interactive    #27292d
+   *   --border/--input    --border-color-muted             #404244
+   *   --ring              --border-color-base              #72777d
+   *   --foreground        --color-base                     #eaecf0
+   *   --muted-foreground  --color-neutral                  #c8ccd1
+   *   --primary/--accent  --color-progressive              #88a3e8
+   *   --destructive       --color-destructive              #fd7865
    */
   --background: 210 2% 8%;
   --foreground: 220 2% 93%;
-  --card: 210 2% 8%;
+  --card: 210 0% 13%;
   --card-foreground: 220 2% 93%;
-  --popover: 210 2% 8%;
+  --popover: 210 0% 13%;
   --popover-foreground: 220 2% 93%;
   --primary: 223 29% 72%;
   --primary-foreground: 210 2% 8%;
-  --secondary: 210 1% 98%;
-  --secondary-foreground: 210 2% 8%;
-  --muted: 210 1% 98%;
-  --muted-foreground: 212 4% 66%;
-  --accent: 223 29% 72%;
-  --accent-foreground: 210 2% 8%;
+  --secondary: 220 1% 16%;
+  --secondary-foreground: 220 2% 93%;
+  --muted: 220 1% 16%;
+  --muted-foreground: 213 3% 80%;
+  --ui-accent: 220 1% 16%;
+  --accent-foreground: 220 2% 93%;
   --destructive: 8 46% 69%;
   --destructive-foreground: 210 2% 8%;
-  --border: 212 4% 66%;
-  --input: 212 4% 66%;
-  --ring: 223 29% 72%;
+  --ui-border: 210 1% 26%;
+  --ui-input: 210 1% 26%;
+  --ui-ring: 213 3% 47%;
 }
 
 * {

@@ -15,9 +15,9 @@ export default {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
+        border: "hsl(var(--ui-border))",
+        input: "hsl(var(--ui-input))",
+        ring: "hsl(var(--ui-ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
@@ -37,7 +37,7 @@ export default {
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
+          DEFAULT: "hsl(var(--ui-accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
         popover: {

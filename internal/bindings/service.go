@@ -311,6 +311,106 @@ func (s *AppService) ImportWikidataDirectory(path string) error {
 	return s.wikidata.ImportDirectory(path)
 }
 
+// WikidataClaimFilter is a filter on the value of one property, as the
+// frontend sends it.
+type WikidataClaimFilter struct {
+	// Property is the property of the claim, such as "P131".
+	Property string `json:"property"`
+	// Value is the value the claim must hold, such as "Q90".
+	Value string `json:"value"`
+}
+
+// WikidataPageRequest is a request for one page of the items, as the
+// frontend sends it.
+type WikidataPageRequest struct {
+	// Limit is the number of items to return.
+	Limit int `json:"limit"`
+	// Offset is the number of items to skip.
+	Offset int `json:"offset"`
+	// SortField is the field to sort on.
+	SortField string `json:"sort_field"`
+	// SortDescending tells whether the order is reversed.
+	SortDescending bool `json:"sort_descending"`
+	// Filters are the claims the items must hold.
+	Filters []WikidataClaimFilter `json:"filters"`
+}
+
+// WikidataPageView is one page of the items, as the frontend sees it.
+type WikidataPageView struct {
+	// Items are the items of the page.
+	Items []WikidataItemView `json:"items"`
+	// Total is the number of items that match the filters.
+	Total int64 `json:"total"`
+	// Properties are the imported properties, by identifier.
+	Properties map[string]string `json:"properties"`
+}
+
+// GetWikidataItemsPage returns one page of the imported items.
+//
+// The filtering, the sorting and the counting happen in the database
+// and not in the frontend: the panel shows a dataset of a whole city,
+// and reading all of it to keep the twentieth part would not scale.
+//
+// The filters are on the claims of the items, because an item has no
+// columns: its properties are claims.
+func (s *AppService) GetWikidataItemsPage(request WikidataPageRequest) (WikidataPageView, error) {
+	view := WikidataPageView{
+		Items:      []WikidataItemView{},
+		Properties: map[string]string{},
+	}
+
+	if s.wikidata == nil {
+		return view, nil
+	}
+
+	reader := wikidata.NewReader(s.wikidata.App())
+
+	filters := make([]wikidata.ClaimFilter, 0, len(request.Filters))
+	for _, filter := range request.Filters {
+		filters = append(filters, wikidata.ClaimFilter{
+			Property: filter.Property,
+			Value:    filter.Value,
+		})
+	}
+
+	items, total, err := reader.ListItemsPage(wikidata.PageQuery{
+		Limit:          request.Limit,
+		Offset:         request.Offset,
+		SortField:      request.SortField,
+		SortDescending: request.SortDescending,
+		Filters:        filters,
+	})
+	if err != nil {
+		return view, err
+	}
+
+	view.Total = total
+
+	for _, item := range items {
+		view.Items = append(view.Items, WikidataItemView{
+			QID:          item.QID,
+			Labels:       labelsOf(item.Labels),
+			Descriptions: labelsOf(item.Descriptions),
+			Claims:       claimsOf(item.Claims),
+		})
+	}
+
+	// The property dictionary gives the panel the name of every
+	// property, so that a claim is shown with its label and not only
+	// with its identifier.
+	properties, err := reader.ListProperties(0, 0)
+	if err != nil {
+		return view, err
+	}
+	for _, property := range properties {
+		if label, ok := property.Labels["en"]; ok && label.Value != "" {
+			view.Properties[property.PID] = label.Value
+		}
+	}
+
+	return view, nil
+}
+
 // GetWikidataDataDir returns the directory the datasets are read from.
 //
 // It is the data directory of the application, which is where the ETL

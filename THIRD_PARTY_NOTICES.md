@@ -24,7 +24,8 @@ tree is listed further down.
 | [sonic](https://github.com/bytedance/sonic) | The JSON parser of the Wikidata extractor: it decodes the dump far faster than the standard library | Apache-2.0 |
 | [Refine](https://refine.dev) | The admin framework of the Wikidata panel: the resources, the data provider and the views | MIT |
 | [React Router](https://reactrouter.com) | The router of the Refine application | MIT |
-| [TanStack Table](https://tanstack.com/table) | The table behind the Refine data table | MIT |
+| [TanStack Table](https://tanstack.com/table) | The row model of the card gallery | MIT |
+| [TanStack Virtual](https://tanstack.com/virtual) | The windowing of the card gallery: only the rows on screen are rendered | MIT |
 | [Tailwind CSS](https://tailwindcss.com) | The styling of the shadcn/ui components | MIT |
 | [Radix UI](https://www.radix-ui.com) | The accessible primitives the shadcn/ui components are built on | MIT |
 | [lucide](https://lucide.dev) | The icons of the interface | ISC |

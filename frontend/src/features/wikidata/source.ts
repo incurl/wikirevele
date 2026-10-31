@@ -39,6 +39,67 @@ export interface WikidataSource {
 }
 
 /**
+ * A filter on the value of one property.
+ *
+ * An item has no columns: its properties are claims, so a filter on a
+ * property is a filter on a claim.
+ */
+export interface ClaimFilterRequest {
+  /** The property of the claim, such as "P131". */
+  readonly property: string;
+  /** The value the claim must hold, such as "Q90". */
+  readonly value: string;
+}
+
+/**
+ * A request for one page of a dataset.
+ */
+export interface PageRequest {
+  /** The number of items to return. */
+  readonly limit: number;
+  /** The number of items to skip. */
+  readonly offset: number;
+  /** The field to sort on. */
+  readonly sortField: string;
+  /** Whether the order is reversed. */
+  readonly sortDescending: boolean;
+  /** The claims the items must hold. */
+  readonly filters: readonly ClaimFilterRequest[];
+}
+
+/**
+ * One page of a dataset.
+ */
+export interface Page {
+  /** The items of the page. */
+  readonly items: readonly WikidataItem[];
+  /** The number of items that match the filters. */
+  readonly total: number;
+}
+
+/**
+ * A source that filters and pages in the backend.
+ *
+ * The gallery shows a dataset of a whole city, so the filtering, the
+ * sorting and the counting have to happen where the data is. A source
+ * that can do it says so by answering `listPage`.
+ *
+ * The in-memory source does not: it holds a subset that is small
+ * enough to filter in the page, and it keeps working as it did.
+ */
+export interface PaginatedSource extends WikidataSource {
+  /** Returns one page of the dataset. */
+  listPage(request: PageRequest): Promise<Page>;
+}
+
+/**
+ * Tells whether a source can filter and page in the backend.
+ */
+export function isPaginated(source: WikidataSource): source is PaginatedSource {
+  return typeof (source as PaginatedSource).listPage === "function";
+}
+
+/**
  * A source that holds nothing.
  *
  * It is what the panel uses before the backend has answered, and what
