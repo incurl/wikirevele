@@ -8,13 +8,13 @@
         AllowPromptForPassword="false">
     </Settings>
     <Installer
-        Path="valkyrie"
+        Path="wikirevele"
         Arguments=""
-        InstallLocation="C:\Program Files\incurl\Valkyrie">
+        InstallLocation="C:\Program Files\incurl\Wikirevele">
     </Installer>
     <PackageInformation
-        PackageName="Valkyrie"
-        PackageDisplayName="Valkyrie"
+        PackageName="Wikirevele"
+        PackageDisplayName="Wikirevele"
         PublisherName="CN=incurl"
         PublisherDisplayName="incurl"
         Version="0.1.0.0"
@@ -25,10 +25,10 @@
         </Capabilities>
         <Applications>
             <Application
-                Id="com.incurl.valkyrie"
+                Id="com.incurl.wikirevele"
                 Description="A Wails v3 desktop application"
-                DisplayName="Valkyrie"
-                ExecutableName="valkyrie"
+                DisplayName="Wikirevele"
+                ExecutableName="wikirevele"
                 EntryPoint="Windows.FullTrustApplication">
                 
             </Application>
@@ -41,13 +41,13 @@
         </Dependencies>
         <Properties>
             <Framework>false</Framework>
-            <DisplayName>Valkyrie</DisplayName>
+            <DisplayName>Wikirevele</DisplayName>
             <PublisherDisplayName>incurl</PublisherDisplayName>
             <Description>A Wails v3 desktop application</Description>
             <Logo>Assets\AppIcon.png</Logo>
         </Properties>
     </PackageInformation>
-    <SaveLocation PackagePath="valkyrie.msix" />
+    <SaveLocation PackagePath="wikirevele.msix" />
     <PackageIntegrity>
         <CertificatePath></CertificatePath>
     </PackageIntegrity>

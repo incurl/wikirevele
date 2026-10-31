@@ -31,7 +31,7 @@ The repository-root files carry the rest:
 
 ## The one-paragraph version
 
-Valkyrie is a template. The plumbing every desktop application needs is done: an embedded PocketBase mounted on the Wails
+Wikirevele is a template. The plumbing every desktop application needs is done: an embedded PocketBase mounted on the Wails
 asset server so files are served from the UI's own origin, a generic job queue with persistence, bounded concurrency,
 cancellation and live event push, an encrypted secret store, a debug console, and the build tooling for every platform. The
 application supplies one thing: a `jobs.Runner` that does the work. Everything else keeps working.

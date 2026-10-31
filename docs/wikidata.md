@@ -169,7 +169,7 @@ The pipeline is tested with a small file that has the shape of a dump:
 cat sample.json | ./bin/wikirevele etl --out-items items.ndjson --out-props props.ndjson
 
 # The import into an isolated database.
-VALKYRIE_DATA_DIR=/tmp/vk ./bin/valkyrie-server
+WIKIREVELE_DATA_DIR=/tmp/vk ./bin/wikirevele-server
 ```
 
 The application imports the files from the data directory, which is the

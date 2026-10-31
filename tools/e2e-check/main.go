@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	dir, err := os.MkdirTemp("", "valkyrie-e2e")
+	dir, err := os.MkdirTemp("", "wikirevele-e2e")
 	if err != nil {
 		panic(err)
 	}

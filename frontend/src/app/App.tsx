@@ -1,5 +1,5 @@
 /**
- * The Valkyrie application shell.
+ * The Wikirevele application shell.
  *
  * The layout is a left control rail, a centre canvas and a right
  * sidebar, with the job queue in the header area.
@@ -230,7 +230,7 @@ function App() {
     <div className="app">
       <header className="app-header">
         <span className="app-brand">
-          Valkyrie
+          Wikirevele
           <small>Wails v3 · PocketBase · React</small>
         </span>
 
@@ -278,7 +278,7 @@ function App() {
           </div>
           <div className="panel-body">
             <p className="text-dim">
-              This is the Valkyrie scaffold. It ships a generic job queue, an
+              This is the Wikirevele scaffold. It ships a generic job queue, an
               embedded PocketBase and a React shell. Replace the runner in
               <code> internal/runner</code> with your own backend, then extend
               the panels to match.

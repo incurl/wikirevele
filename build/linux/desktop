@@ -1,13 +1,13 @@
 [Desktop Entry]
 Version=1.0
-Name=Valkyrie
+Name=Wikirevele
 Comment=A Wails v3 desktop application
 # The Exec line includes %u to pass the URL to the application
-Exec=/usr/local/bin/valkyrie %u
+Exec=/usr/local/bin/wikirevele %u
 Terminal=false
 Type=Application
-Icon=valkyrie
+Icon=wikirevele
 Categories=Utility;
-StartupWMClass=valkyrie
+StartupWMClass=wikirevele
 
  

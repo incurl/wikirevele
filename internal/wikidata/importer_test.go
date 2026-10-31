@@ -8,7 +8,7 @@ import (
 	wikirevelepb "github.com/incurl/wikirevele/internal/pocketbase"
 )
 
-// newTestApp bootstraps a PocketBase with the Valkyrie schema.
+// newTestApp bootstraps a PocketBase with the Wikirevele schema.
 func newTestApp(t *testing.T) *wikirevelepb.Service {
 	t.Helper()
 

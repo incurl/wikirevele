@@ -17,7 +17,7 @@ import (
 // secrets before they are written to the app_settings collection.
 //
 // PocketBase provides no generic secret-encryption facility, so
-// Valkyrie stores an encrypted envelope in the record. The key never
+// Wikirevele stores an encrypted envelope in the record. The key never
 // leaves the machine: it is generated on first run and kept in a 0600
 // file inside the data directory.
 type Cipher struct {
@@ -27,7 +27,15 @@ type Cipher struct {
 }
 
 // keyFileName is the name of the file holding the local encryption key.
-const keyFileName = ".valkyrie_key"
+const keyFileName = ".wikirevele_key"
+
+// legacyKeyFileName is the name the key file had before the
+// application was renamed.
+//
+// A key file that is still there is used as it is: the secrets of an
+// existing installation must stay readable, and a new key would make
+// every one of them unreadable.
+const legacyKeyFileName = ".valkyrie_key"
 
 // NewCipher loads the encryption key from dataDir, creating it on first
 // use.
@@ -39,10 +47,19 @@ func NewCipher(dataDir string) (*Cipher, error) {
 		if !os.IsNotExist(err) {
 			return nil, fmt.Errorf("read encryption key: %w", err)
 		}
-		key = make([]byte, 32)
-		if _, err := rand.Read(key); err != nil {
-			return nil, fmt.Errorf("generate encryption key: %w", err)
+
+		// The key file of the old name is used when it is the only
+		// one there.
+		legacy, legacyErr := os.ReadFile(filepath.Join(dataDir, legacyKeyFileName))
+		if legacyErr == nil {
+			key = legacy
+		} else {
+			key = make([]byte, 32)
+			if _, err := rand.Read(key); err != nil {
+				return nil, fmt.Errorf("generate encryption key: %w", err)
+			}
 		}
+
 		if err := os.WriteFile(keyPath, key, 0o600); err != nil {
 			return nil, fmt.Errorf("write encryption key: %w", err)
 		}

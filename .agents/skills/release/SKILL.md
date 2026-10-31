@@ -1,7 +1,7 @@
 ---
 name: release
 description: >
-  Cut a release of a Valkyrie application: pick the version, verify the
+  Cut a release of a Wikirevele application: pick the version, verify the
   candidate commit, build the binaries and the packages, publish the GitHub
   release, and verify what was published. Use when the user asks to ship, cut
   a release, tag a version, or publish the desktop application. Do not use for
@@ -132,7 +132,7 @@ Check the artifacts:
 
 ```bash
 ls -la bin/
-file bin/valkyrie
+file bin/wikirevele
 ```
 
 A Linux release should also carry the packages: `bin/*.deb`, `bin/*.rpm`, `bin/*.AppImage`.
@@ -170,7 +170,7 @@ release from the CLI:
 gh release create X.Y.Z \
   --title "X.Y.Z" \
   --notes-file /tmp/notes.md \
-  bin/valkyrie bin/*.deb bin/*.rpm bin/*.AppImage
+  bin/wikirevele bin/*.deb bin/*.rpm bin/*.AppImage
 ```
 
 If a release workflow exists, let it run and watch it:
@@ -196,7 +196,7 @@ On failure, read the log with `gh run view <id> --log-failed` and classify it:
    ```
 2. The binary runs and reports the right version:
    ```bash
-   ./bin/valkyrie --version
+   ./bin/wikirevele --version
    ```
 3. The tagged commit is the one you intended:
    ```bash

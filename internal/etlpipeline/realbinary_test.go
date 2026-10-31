@@ -73,7 +73,7 @@ func TestTheRealBinaryRunsAsTheWorker(t *testing.T) {
 		t.Skip("no bzip2 on this host")
 	}
 
-	binary := filepath.Join("..", "..", "bin", "valkyrie")
+	binary := filepath.Join("..", "..", "bin", "wikirevele")
 	if _, err := os.Stat(binary); err != nil {
 		t.Skip("the binary is not built")
 	}

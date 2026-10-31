@@ -1,4 +1,4 @@
-# Valkyrie — Copilot instructions
+# Wikirevele — Copilot instructions
 
 A desktop application template built on Wails v3, an embedded PocketBase and a React frontend. The domain is the application's
 own; the scaffolding is shared.

@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=valkyrie
-Exec=valkyrie
-Icon=valkyrie
+Name=wikirevele
+Exec=wikirevele
+Icon=wikirevele
 Categories=Development;
 Terminal=false
 Keywords=wails

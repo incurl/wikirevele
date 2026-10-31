@@ -1,4 +1,4 @@
-# Valkyrie
+# Wikirevele
 
 A desktop application scaffold: **Wails v3** + **PocketBase** + **Vite** +
 **React**, wired together and ready to be built on.
@@ -75,7 +75,7 @@ rebuilds the Go backend on every change.
 To build a distributable binary:
 
 ```bash
-wails3 build      # → bin/valkyrie
+wails3 build      # → bin/wikirevele
 ```
 
 The [Task](https://taskfile.dev) wrappers are the ones to reach for when
@@ -217,9 +217,9 @@ Everything lives in `pb_data/` next to the executable:
 | --- | --- |
 | `pb_data/data.db` | The SQLite database (3 collections) |
 | `pb_data/storage/` | The uploaded and generated files, served by PocketBase's native file route |
-| `pb_data/.valkyrie_key` | The AES-256-GCM key for the secrets (mode 0600) |
+| `pb_data/.wikirevele_key` | The AES-256-GCM key for the secrets (mode 0600) |
 
-Set `VALKYRIE_DATA_DIR` to relocate it.
+Set `WIKIREVELE_DATA_DIR` to relocate it.
 
 ## Collections
 
@@ -252,7 +252,7 @@ The same binary runs headless, with no GUI dependencies:
 
 ```bash
 task build:server
-WAILS_SERVER_HOST=0.0.0.0 WAILS_SERVER_PORT=8080 ./bin/valkyrie-server
+WAILS_SERVER_HOST=0.0.0.0 WAILS_SERVER_PORT=8080 ./bin/wikirevele-server
 ```
 
 It serves the frontend and the PocketBase API over HTTP. A minimal
@@ -347,5 +347,5 @@ fetches it back through PocketBase's file route.
 
 ## Licence
 
-Valkyrie is MIT licensed. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+Wikirevele is MIT licensed. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 for the third party attributions.

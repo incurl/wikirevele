@@ -87,10 +87,29 @@ export function WikidataPanel({ source: givenSource, showGraph = false }: Wikida
       <div className="wikidata-panel">
         {/*
           The two pages are routes, not one after the other: the list
-          is at /wikidata and the item is at /wikidata/:id. Without
-          the routes both pages are rendered at once.
+          is at / and the item is at /wikidata/:id. Without the
+          routes both pages are rendered at once.
+
+          The list is the landing page, so it answers the root path
+          and the /wikidata path both. The application starts at the
+          root, and a panel that only answers /wikidata would be one
+          the user cannot reach: there is no link to it.
         */}
         <Routes>
+          <Route
+            path="/"
+            element={
+              <ListView>
+                <ListViewHeader title="Wikidata items" canCreate={false} />
+                <ImportPanel />
+                {loading ? (
+                  <p className="text-sm text-muted-foreground">Loading the dataset…</p>
+                ) : (
+                  <WikidataItemList showGraph={showGraph} />
+                )}
+              </ListView>
+            }
+          />
           <Route
             path="/wikidata"
             element={

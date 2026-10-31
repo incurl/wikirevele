@@ -203,7 +203,7 @@ routing.
 
 ### The API key is not found after a restart
 
-The key file lives in the data directory, next to the database. If `VALKYRIE_DATA_DIR` changes between runs, the app reads a
+The key file lives in the data directory, next to the database. If `WIKIREVELE_DATA_DIR` changes between runs, the app reads a
 different database and a different key file. Check the data directory first.
 
 ---

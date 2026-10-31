@@ -1,4 +1,4 @@
-# Valkyrie vocabulary
+# Wikirevele vocabulary
 
 The terms below are shared between the Go backend, the React frontend and the documentation. The same terms appear in code as
 collection names (`jobs`, `artifacts`, `app_settings`) and as JSON field names.
@@ -108,7 +108,7 @@ _Avoid_: Message, Signal, Subscription
 
 **Data directory**:
 The directory holding the database, the stored files and the encryption key. It is `pb_data` next to the executable, and
-`VALKYRIE_DATA_DIR` relocates it.
+`WIKIREVELE_DATA_DIR` relocates it.
 _Avoid_: Database directory, Storage path, App data
 
 **Migration**:

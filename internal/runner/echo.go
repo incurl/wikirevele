@@ -1,6 +1,6 @@
 // Package runner holds the example job runner of the scaffold.
 //
-// It is the extension point of Valkyrie: replace it with a runner that
+// It is the extension point of Wikirevele: replace it with a runner that
 // talks to your own backend. The queue, the persistence, the
 // cancellation and the events all work the same way, whatever the
 // runner does.

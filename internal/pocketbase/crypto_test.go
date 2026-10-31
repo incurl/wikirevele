@@ -161,3 +161,81 @@ func TestCipherRejectsAWrongKey(t *testing.T) {
 		t.Error("another key decrypted the envelope")
 	}
 }
+
+func TestTheKeyOfTheOldNameIsStillUsed(t *testing.T) {
+	// The application was renamed. An installation that was made
+	// before the rename has a key file of the old name, and its
+	// secrets must stay readable: a new key would make every one of
+	// them unreadable.
+	directory := t.TempDir()
+
+	legacy := make([]byte, 32)
+	for i := range legacy {
+		legacy[i] = byte(i)
+	}
+	if err := os.WriteFile(filepath.Join(directory, ".valkyrie_key"), legacy, 0o600); err != nil {
+		t.Fatalf("write the legacy key: %v", err)
+	}
+
+	cipher, err := NewCipher(directory)
+	if err != nil {
+		t.Fatalf("new cipher: %v", err)
+	}
+
+	// The old key is the one that is used.
+	envelope, err := cipher.Encrypt([]byte("a secret"))
+	if err != nil {
+		t.Fatalf("encrypt: %v", err)
+	}
+	plain, err := cipher.Decrypt(envelope)
+	if err != nil {
+		t.Fatalf("decrypt: %v", err)
+	}
+	if string(plain) != "a secret" {
+		t.Errorf("the secret is %q, want it back", plain)
+	}
+
+	// The key was also written under the new name, so that the next
+	// run does not have to look for the old one.
+	if _, err := os.Stat(filepath.Join(directory, ".wikirevele_key")); err != nil {
+		t.Errorf("the key was not written under the new name: %v", err)
+	}
+}
+
+func TestTheKeyOfTheNewNameIsPreferred(t *testing.T) {
+	// When both files are there, the new one is the one that counts.
+	directory := t.TempDir()
+
+	current := make([]byte, 32)
+	for i := range current {
+		current[i] = byte(i)
+	}
+	legacy := make([]byte, 32)
+	for i := range legacy {
+		legacy[i] = byte(255 - i)
+	}
+
+	if err := os.WriteFile(filepath.Join(directory, ".wikirevele_key"), current, 0o600); err != nil {
+		t.Fatalf("write the key: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, ".valkyrie_key"), legacy, 0o600); err != nil {
+		t.Fatalf("write the legacy key: %v", err)
+	}
+
+	cipher, err := NewCipher(directory)
+	if err != nil {
+		t.Fatalf("new cipher: %v", err)
+	}
+
+	envelope, err := cipher.Encrypt([]byte("a secret"))
+	if err != nil {
+		t.Fatalf("encrypt: %v", err)
+	}
+	plain, err := cipher.Decrypt(envelope)
+	if err != nil {
+		t.Fatalf("decrypt: %v", err)
+	}
+	if string(plain) != "a secret" {
+		t.Errorf("the secret is %q, want it back", plain)
+	}
+}

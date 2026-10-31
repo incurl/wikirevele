@@ -8,13 +8,13 @@
   IgnorableNamespaces="uap3">
   
   <Identity 
-    Name="com.incurl.valkyrie"
+    Name="com.incurl.wikirevele"
     Publisher="CN=incurl"
     Version="0.1.0.0" 
     ProcessorArchitecture="x64" />
   
   <Properties>
-    <DisplayName>Valkyrie</DisplayName>
+    <DisplayName>Wikirevele</DisplayName>
     <PublisherDisplayName>incurl</PublisherDisplayName>
     <Description>A Wails v3 desktop application</Description>
     <Logo>Assets\StoreLogo.png</Logo>
@@ -29,9 +29,9 @@
   </Resources>
   
   <Applications>
-    <Application Id="com.incurl.valkyrie" Executable="valkyrie" EntryPoint="Windows.FullTrustApplication">
+    <Application Id="com.incurl.wikirevele" Executable="wikirevele" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="Valkyrie"
+        DisplayName="Wikirevele"
         Description="A Wails v3 desktop application"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
@@ -41,7 +41,7 @@
       </uap:VisualElements>
       
       <Extensions>
-        <desktop:Extension Category="windows.fullTrustProcess" Executable="valkyrie" />
+        <desktop:Extension Category="windows.fullTrustProcess" Executable="wikirevele" />
         
         
       </Extensions>

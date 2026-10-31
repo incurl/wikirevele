@@ -1,4 +1,4 @@
-// Valkyrie is a desktop application scaffold.
+// Wikirevele is a desktop application scaffold.
 //
 // It wires together Wails v3, an embedded PocketBase and a React
 // frontend, and it provides a generic job queue that an application
@@ -315,10 +315,17 @@ func readIndex() ([]byte, error) {
 // dataDir returns the directory holding the database and the uploaded
 // files.
 //
-// The VALKYRIE_DATA_DIR environment variable overrides the default,
+// The WIKIREVELE_DATA_DIR environment variable overrides the default,
 // which lets the app run against an isolated database during development
 // and testing.
+//
+// The old VALKYRIE_DATA_DIR is read as well, so that a script written
+// before the rename keeps working. The new name wins when both are
+// set.
 func dataDir() string {
+	if dir := os.Getenv("WIKIREVELE_DATA_DIR"); dir != "" {
+		return dir
+	}
 	if dir := os.Getenv("VALKYRIE_DATA_DIR"); dir != "" {
 		return dir
 	}

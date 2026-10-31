@@ -3,7 +3,7 @@
 #
 # The lines below are called `modelines`. See `:help modeline`
 
-name: "valkyrie"
+name: "wikirevele"
 arch: ${GOARCH}
 platform: "linux"
 version: "0.1.0"
@@ -17,12 +17,12 @@ license: "MIT"
 release: "1"
 
 contents:
-  - src: "./bin/valkyrie"
-    dst: "/usr/local/bin/valkyrie"
+  - src: "./bin/wikirevele"
+    dst: "/usr/local/bin/wikirevele"
   - src: "./build/appicon.png"
-    dst: "/usr/share/icons/hicolor/128x128/apps/valkyrie.png"
-  - src: "./build/linux/valkyrie.desktop"
-    dst: "/usr/share/applications/valkyrie.desktop"
+    dst: "/usr/share/icons/hicolor/128x128/apps/wikirevele.png"
+  - src: "./build/linux/wikirevele.desktop"
+    dst: "/usr/share/applications/wikirevele.desktop"
 
 # Default dependencies for the GTK4 + WebKitGTK 6.0 stack (Ubuntu 24.04+ / Debian 13+)
 depends:

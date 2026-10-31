@@ -5,7 +5,7 @@ repo. If a fact here conflicts with source files or CI config, trust the source 
 
 ## Project Snapshot
 
-Valkyrie is a **scaffold**: a desktop application template built on Wails v3, an embedded PocketBase and a React frontend. It
+Wikirevele is a **scaffold**: a desktop application template built on Wails v3, an embedded PocketBase and a React frontend. It
 is not a product. The plumbing every application needs is done; the domain is yours to write.
 
 - Backend: Go 1.26 (toolchain `go1.26.10` pinned in `go.mod`), Wails v3.0.0, PocketBase v0.39.11. The binary is `main.go` at
@@ -125,8 +125,8 @@ npm run build                                  # tsc && vite build -> frontend/d
 PATH="$HOME/go/bin:$PATH" wails3 generate bindings -clean=true -ts -i   # same as common:generate:bindings
 
 # Builds
-PATH="$HOME/go/bin:$PATH" wails3 build          # -> bin/valkyrie
-PATH="$HOME/go/bin:$PATH" wails3 task build:server   # -> bin/valkyrie-server
+PATH="$HOME/go/bin:$PATH" wails3 build          # -> bin/wikirevele
+PATH="$HOME/go/bin:$PATH" wails3 task build:server   # -> bin/wikirevele-server
 PATH="$HOME/go/bin:$PATH" wails3 task package        # the platform packages
 PATH="$HOME/go/bin:$PATH" wails3 task --list-all     # every task, with names
 
@@ -197,7 +197,7 @@ The same binary runs headless with `-tags server`. It serves the frontend and th
 dependencies.
 
 ```bash
-VALKYRIE_DATA_DIR=/tmp/valkyrie WAILS_SERVER_PORT=8080 ./bin/valkyrie-server
+WIKIREVELE_DATA_DIR=/tmp/wikirevele WAILS_SERVER_PORT=8080 ./bin/wikirevele-server
 ```
 
 `WAILS_SERVER_HOST` overrides the bind address (default `localhost`; the container image sets `0.0.0.0`). `WAILS_SERVER_PORT`
@@ -205,8 +205,8 @@ overrides the port (default `8080`). The container image is `task build:docker`.
 
 ## Data
 
-Everything lives in `pb_data/` next to the executable: `data.db` (SQLite), `storage/` (the files), and `.valkyrie_key` (the
-AES-256-GCM key, mode `0600`). `VALKYRIE_DATA_DIR` relocates it — use that to run against an isolated database during
+Everything lives in `pb_data/` next to the executable: `data.db` (SQLite), `storage/` (the files), and `.wikirevele_key` (the
+AES-256-GCM key, mode `0600`). `WIKIREVELE_DATA_DIR` relocates it — use that to run against an isolated database during
 development and testing.
 
 ## Verification Policy

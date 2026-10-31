@@ -220,8 +220,8 @@ func TestMigrationIsIdempotent(t *testing.T) {
 Then check the real thing: run the app against a **copy** of an existing database and confirm the migration applies.
 
 ```bash
-cp -r ~/.local/share/valkyrie/pb_data /tmp/pb_data_backup
-VALKYRIE_DATA_DIR=/tmp/pb_data_backup ./bin/valkyrie
+cp -r ~/.local/share/wikirevele/pb_data /tmp/pb_data_backup
+WIKIREVELE_DATA_DIR=/tmp/pb_data_backup ./bin/wikirevele
 ```
 
 ## Common mistakes

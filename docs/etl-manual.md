@@ -562,7 +562,7 @@ dump.
 The application looks for them in its **data directory**:
 
 - `pb_data/` next to the executable, by default
-- or wherever `VALKYRIE_DATA_DIR` points
+- or wherever `WIKIREVELE_DATA_DIR` points
 
 The two filenames must be exactly:
 
@@ -594,7 +594,7 @@ the progress bar follows it. **Stop** cancels it.
 ### From the command line
 
 ```bash
-VALKYRIE_DATA_DIR=/tmp/vk ./bin/valkyrie-server
+WIKIREVELE_DATA_DIR=/tmp/vk ./bin/wikirevele-server
 ```
 
 then import from the panel, or call the binding directly.

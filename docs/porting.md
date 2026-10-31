@@ -1,6 +1,6 @@
 # Porting the template to a new application
 
-The checklist for taking Valkyrie to a new project. Do the steps in order: the later ones assume the earlier ones.
+The checklist for taking Wikirevele to a new project. Do the steps in order: the later ones assume the earlier ones.
 
 The fastest way to start is to copy the repository and rename it. Copying keeps the build tooling, the CI and the tests, which
 are the parts that take the longest to get right.
@@ -32,19 +32,19 @@ named after the wrong project.
 | The Windows metadata | `build/windows/info.json` |
 | The MSIX manifests | `build/windows/msix/template.xml`, `build/windows/msix/app_manifest.xml` |
 | The NSIS installer | `build/windows/nsis/wails_tools.nsh` |
-| The Linux package | `build/linux/nfpm/nfpm.yaml`, `build/linux/valkyrie.desktop` |
+| The Linux package | `build/linux/nfpm/nfpm.yaml`, `build/linux/wikirevele.desktop` |
 | The Xcode project | `build/ios/project.pbxproj` |
 
 A blunt but effective approach for the bulk of it:
 
 ```bash
 # In the copied repository, before the first build
-grep -rl 'valkyrie\|Valkyrie' --exclude-dir=.git --exclude-dir=node_modules \
+grep -rl 'wikirevele\|Wikirevele' --exclude-dir=.git --exclude-dir=node_modules \
   --exclude-dir=bindings --exclude-dir=dist . \
-  | xargs sed -i 's/valkyrie/<name>/g; s/Valkyrie/<Name>/g'
+  | xargs sed -i 's/wikirevele/<name>/g; s/Wikirevele/<Name>/g'
 ```
 
-Then review the diff: `com.incurl.valkyrie` becomes `com.incurl.<name>`, which is usually what you want, but the bundle
+Then review the diff: `com.incurl.wikirevele` becomes `com.incurl.<name>`, which is usually what you want, but the bundle
 identifier may need a different domain.
 
 After renaming, regenerate the build assets, because the config file says they are derived from it:

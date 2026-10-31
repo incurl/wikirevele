@@ -138,9 +138,31 @@ func TestSPAHandlerServesTheIndexForTheRoutes(t *testing.T) {
 // directory can be relocated, so that the app can run against an
 // isolated database during development and testing.
 func TestDataDirHonoursTheEnvironmentVariable(t *testing.T) {
+	t.Setenv("WIKIREVELE_DATA_DIR", "/tmp/wikirevele-test-data")
+
+	if got := dataDir(); got != "/tmp/wikirevele-test-data" {
+		t.Errorf("data dir = %q, want the overridden one", got)
+	}
+}
+
+// TestDataDirStillReadsTheOldVariable verifies that a script written
+// before the rename keeps working.
+func TestDataDirStillReadsTheOldVariable(t *testing.T) {
+	t.Setenv("WIKIREVELE_DATA_DIR", "")
 	t.Setenv("VALKYRIE_DATA_DIR", "/tmp/valkyrie-test-data")
 
 	if got := dataDir(); got != "/tmp/valkyrie-test-data" {
 		t.Errorf("data dir = %q, want the overridden one", got)
+	}
+}
+
+// TestDataDirPrefersTheNewVariable verifies that the new name wins
+// when both are set.
+func TestDataDirPrefersTheNewVariable(t *testing.T) {
+	t.Setenv("WIKIREVELE_DATA_DIR", "/tmp/wikirevele-test-data")
+	t.Setenv("VALKYRIE_DATA_DIR", "/tmp/valkyrie-test-data")
+
+	if got := dataDir(); got != "/tmp/wikirevele-test-data" {
+		t.Errorf("data dir = %q, want the new one", got)
 	}
 }
