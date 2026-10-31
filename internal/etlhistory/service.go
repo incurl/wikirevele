@@ -10,6 +10,7 @@ package etlhistory
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/pocketbase/pocketbase/core"
@@ -124,7 +125,11 @@ func NewService(app core.App) *Service {
 // crashes the application is still in the history: it is marked as
 // running, and it is marked as failed the next time the application
 // starts.
-func (s *Service) Start(command, targetQID string, recursive bool, langs, dumpPath, outItems, outProps string) (string, error) {
+//
+// The targets and the item files are stored as comma-separated lists,
+// the way the command line carries them. A run over several targets
+// records all of them.
+func (s *Service) Start(command string, targetQIDs []string, recursive bool, langs, dumpPath string, outItems []string, outProps string) (string, error) {
 	collection, err := s.collection()
 	if err != nil {
 		return "", err
@@ -132,11 +137,11 @@ func (s *Service) Start(command, targetQID string, recursive bool, langs, dumpPa
 
 	record := core.NewRecord(collection)
 	record.Set(FieldFullCommand, command)
-	record.Set(FieldTargetQID, targetQID)
+	record.Set(FieldTargetQID, strings.Join(targetQIDs, ","))
 	record.Set(FieldRecursiveP131, recursive)
 	record.Set(FieldLangs, langs)
 	record.Set(FieldDumpPath, dumpPath)
-	record.Set(FieldOutItemsPath, outItems)
+	record.Set(FieldOutItemsPath, strings.Join(outItems, ","))
 	record.Set(FieldOutPropsPath, outProps)
 	record.Set(FieldStartedAt, time.Now())
 	record.Set(FieldStatus, StatusRunning)

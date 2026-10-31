@@ -22,7 +22,18 @@ frontend. It is a working product, not a template: the domain is written and shi
 - The **Wikidata ETL worker** is the `etl` subcommand of the **same binary**: `internal/etl/`. There is one module and one
   executable. The subcommand decides which of the two modes runs, and the two never run together.
 
-## The One Concept That Matters
+## The Two Concepts That Matter
+
+**The dataset is produced in two stages, in one binary.** The ETL worker (`internal/etl/`) reads a dump from the standard input
+and writes the trimmed NDJSON files; the application (`internal/wikidata/`) imports them into PocketBase and reads them back
+for the panel. The boundary between the two is a **process** boundary: the application never reads a dump and never trims
+anything. See [`docs/wikidata.md`](docs/wikidata.md).
+
+**A run may extract several targets at once, and the dump is read once for all of them.** The dump is more than a hundred
+gigabytes, so a run per target would read it once per target. The pipeline holds a set of targets and checks every entity
+against every one of them; each target gets its own items file, and the property dictionary is written once for the whole
+run. The hierarchies of the targets are separate, and the items and the dictionary are independent (`--items-only`,
+`--properties-only`).
 
 **The job queue is generic; the runner is yours.**
 

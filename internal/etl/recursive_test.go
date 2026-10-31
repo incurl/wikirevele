@@ -153,16 +153,18 @@ func runRecursivePipeline(t *testing.T, dump, target, itemsPath, propsPath strin
 	}
 
 	pipeline := NewPipeline(Options{
-		Items:      items,
-		Properties: props,
-		Target:     target,
-		Recursive:  recursive,
+		Targets: []*Target{
+			NewTarget(target, "", itemsPath, NewEntityWriter(items), recursive),
+		},
+		Properties:      props,
+		WriteProperties: true,
+		Recursive:       recursive,
 	})
 
 	if _, err := pipeline.Run(context.Background(), strings.NewReader(dump)); err != nil {
 		t.Fatalf("run: %v", err)
 	}
-	if err := pipeline.Finish(itemsPath); err != nil {
+	if err := pipeline.Finish(); err != nil {
 		t.Fatalf("finish: %v", err)
 	}
 	if err := pipeline.Flush(); err != nil {

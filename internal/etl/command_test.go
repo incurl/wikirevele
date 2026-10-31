@@ -92,9 +92,9 @@ func TestTrimOptionsForFallsBackOnTheDefaults(t *testing.T) {
 
 func TestTheCommandRefusesABadTarget(t *testing.T) {
 	err := validateOptions(CommandOptions{
-		TargetQID: "Paris",
-		OutItems:  "items.ndjson",
-		OutProps:  "props.ndjson",
+		TargetQIDs: []string{"Paris"},
+		OutItems:   "items.ndjson",
+		OutProps:   "props.ndjson",
 	})
 
 	if err == nil {
@@ -104,10 +104,10 @@ func TestTheCommandRefusesABadTarget(t *testing.T) {
 
 func TestTheCommandRefusesABadLanguage(t *testing.T) {
 	err := validateOptions(CommandOptions{
-		TargetQID: "Q90",
-		Languages: []string{"en", "NOT A LANGUAGE"},
-		OutItems:  "items.ndjson",
-		OutProps:  "props.ndjson",
+		TargetQIDs: []string{"Q90"},
+		Languages:  []string{"en", "NOT A LANGUAGE"},
+		OutItems:   "items.ndjson",
+		OutProps:   "props.ndjson",
 	})
 
 	if err == nil {
@@ -117,13 +117,29 @@ func TestTheCommandRefusesABadLanguage(t *testing.T) {
 
 func TestTheCommandRefusesTheSameFileTwice(t *testing.T) {
 	err := validateOptions(CommandOptions{
-		TargetQID: "Q90",
-		OutItems:  "same.ndjson",
-		OutProps:  "same.ndjson",
+		TargetQIDs: []string{"Q90"},
+		OutItems:   "same.ndjson",
+		OutProps:   "same.ndjson",
 	})
 
 	if err == nil {
 		t.Fatal("the command accepted one file for both outputs")
+	}
+}
+
+func TestTheCommandRefusesBothOutputsAtOnce(t *testing.T) {
+	// The items only and the properties only cannot be asked for at the
+	// same time: the run would write nothing.
+	err := validateOptions(CommandOptions{
+		TargetQIDs:     []string{"Q90"},
+		OutItems:       "items.ndjson",
+		OutProps:       "props.ndjson",
+		ItemsOnly:      true,
+		PropertiesOnly: true,
+	})
+
+	if err == nil {
+		t.Fatal("the command accepted a run that writes nothing")
 	}
 }
 
@@ -198,8 +214,8 @@ func TestTheCommandWritesTheEventsWhenAsked(t *testing.T) {
 	if done.Type != EventDone {
 		t.Errorf("the last event is %q, want %q", done.Type, EventDone)
 	}
-	if done.ItemFile != items {
-		t.Errorf("the event names %q, want %q", done.ItemFile, items)
+	if len(done.ItemFiles) != 1 || done.ItemFiles[0] != items {
+		t.Errorf("the event names the files %v, want %v", done.ItemFiles, []string{items})
 	}
 	if done.Items != 1 {
 		t.Errorf("the event counts %d items, want 1", done.Items)

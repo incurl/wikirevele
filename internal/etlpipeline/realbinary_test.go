@@ -113,7 +113,7 @@ func TestTheRealBinaryRunsAsTheWorker(t *testing.T) {
 
 	progress, err := supervisor.Start(context.Background(), JobOptions{
 		DumpPath:     dump,
-		TargetQID:    "Q90",
+		TargetQIDs:   []string{"Q90"},
 		Languages:    []string{"en"},
 		OutItemsPath: filepath.Join(directory, "items.ndjson"),
 		OutPropsPath: filepath.Join(directory, "props.ndjson"),

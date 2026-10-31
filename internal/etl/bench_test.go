@@ -28,7 +28,13 @@ func BenchmarkPipeline(b *testing.B) {
 			b.Fatalf("open: %v", err)
 		}
 
-		pipeline := NewPipeline(Options{Items: io.Discard, Properties: io.Discard})
+		pipeline := NewPipeline(Options{
+			Targets: []*Target{
+				NewTarget(ParisQID, "", "", NewEntityWriter(io.Discard), false),
+			},
+			Properties:      io.Discard,
+			WriteProperties: true,
+		})
 		if _, err := pipeline.Run(context.Background(), file); err != nil {
 			b.Fatalf("run: %v", err)
 		}

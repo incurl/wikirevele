@@ -17,6 +17,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/incurl/wikirevele/internal/etl"
 )
 
 // The decompressors the pipeline knows.
@@ -52,17 +54,39 @@ const (
 type JobOptions struct {
 	// DumpPath is the path of the compressed dump.
 	DumpPath string `json:"dump_path"`
-	// TargetQID is the entity the items are linked to.
-	TargetQID string `json:"target_qid"`
+	// TargetQIDs are the entities the items are linked to.
+	//
+	// The dump is read once and every entity is checked against
+	// every target, so a run over several targets costs one pass and
+	// not one pass per target.
+	TargetQIDs []string `json:"target_qids"`
+	// TargetLabels are the names of the targets, in the same order.
+	//
+	// They are used in the messages and in the name of the file when
+	// the file is derived from the target.
+	TargetLabels []string `json:"target_labels"`
 	// RecursiveP131 tells whether the administrative hierarchy is
 	// walked.
 	RecursiveP131 bool `json:"recursive_p131"`
 	// Languages are the languages that are kept.
 	Languages []string `json:"langs"`
 	// OutItemsPath is the file the items are written to.
+	//
+	// It is the file of the first target when there is one, and the
+	// files of the other targets are derived from it.
 	OutItemsPath string `json:"out_items_path"`
+	// OutItemsPaths holds the file of every target, in the same order
+	// as the targets.
+	//
+	// It overrides OutItemsPath for the targets it names.
+	OutItemsPaths []string `json:"out_items_paths"`
 	// OutPropsPath is the file the properties are written to.
 	OutPropsPath string `json:"out_props_path"`
+	// ItemsOnly tells whether the run writes the items only.
+	ItemsOnly bool `json:"items_only"`
+	// PropertiesOnly tells whether the run writes the property
+	// dictionary only.
+	PropertiesOnly bool `json:"properties_only"`
 	// Overwrite tells whether an existing output file may be
 	// replaced.
 	Overwrite bool `json:"overwrite"`
@@ -91,9 +115,12 @@ func BuildCommand(opts JobOptions, worker string) (string, error) {
 		"|",
 		quote(worker),
 		"etl",
-		"--target-qid", quote(opts.TargetQID),
+		"--target-qid", quote(strings.Join(opts.TargetQIDs, ",")),
 	}
 
+	if len(opts.TargetLabels) > 0 {
+		arguments = append(arguments, "--target-label", quote(strings.Join(opts.TargetLabels, ",")))
+	}
 	if opts.RecursiveP131 {
 		arguments = append(arguments, "--recursive-p131")
 	}
@@ -105,6 +132,16 @@ func BuildCommand(opts JobOptions, worker string) (string, error) {
 		"--out-props", quote(opts.OutPropsPath),
 		"--events",
 	)
+	if len(opts.OutItemsPaths) > 0 {
+		arguments = append(arguments,
+			"--out-items-per-target", quote(strings.Join(opts.OutItemsPaths, ",")))
+	}
+	if opts.ItemsOnly {
+		arguments = append(arguments, "--items-only")
+	}
+	if opts.PropertiesOnly {
+		arguments = append(arguments, "--properties-only")
+	}
 	if opts.Overwrite {
 		arguments = append(arguments, "--overwrite")
 	}
@@ -147,21 +184,55 @@ func ValidateOptions(opts JobOptions) error {
 	if opts.DumpPath == "" {
 		return fmt.Errorf("etlpipeline: the dump is required")
 	}
-	if opts.TargetQID == "" {
+	if len(opts.TargetQIDs) == 0 {
 		return fmt.Errorf("etlpipeline: the target is required")
 	}
-	if opts.OutItemsPath == "" {
+	for _, qid := range opts.TargetQIDs {
+		if !etl.IsQID(qid) {
+			return fmt.Errorf(
+				"etlpipeline: the target %q is not a Wikidata identifier, such as Q90",
+				qid)
+		}
+	}
+	if len(opts.TargetLabels) > len(opts.TargetQIDs) {
+		return fmt.Errorf(
+			"etlpipeline: %d names were given for %d targets",
+			len(opts.TargetLabels), len(opts.TargetQIDs))
+	}
+	if opts.ItemsOnly && opts.PropertiesOnly {
+		return fmt.Errorf(
+			"etlpipeline: the items only and the properties only cannot be asked " +
+				"for at the same time: the run would write nothing")
+	}
+	if opts.WritesItems() && opts.OutItemsPath == "" && len(opts.OutItemsPaths) == 0 {
 		return fmt.Errorf("etlpipeline: the items output is required")
 	}
-	if opts.OutPropsPath == "" {
+	if opts.WritesProperties() && opts.OutPropsPath == "" {
 		return fmt.Errorf("etlpipeline: the properties output is required")
 	}
-	if opts.OutItemsPath == opts.OutPropsPath {
+	if opts.OutItemsPath != "" && opts.OutItemsPath == opts.OutPropsPath {
 		return fmt.Errorf(
 			"etlpipeline: the items and the properties cannot be written to the same file")
 	}
 
 	return nil
+}
+
+// WritesItems tells whether the run writes the items.
+//
+// The run writes the items unless it was asked for the property
+// dictionary only.
+func (o JobOptions) WritesItems() bool {
+	return !o.PropertiesOnly
+}
+
+// WritesProperties tells whether the run writes the property
+// dictionary.
+//
+// The run writes the dictionary unless it was asked for the items
+// only.
+func (o JobOptions) WritesProperties() bool {
+	return !o.ItemsOnly
 }
 
 // Validate checks the options of a job and the files they name.
@@ -177,7 +248,19 @@ func Validate(opts JobOptions) error {
 		return fmt.Errorf("etlpipeline: the dump %s is not readable: %w", opts.DumpPath, err)
 	}
 
-	for _, path := range []string{opts.OutItemsPath, opts.OutPropsPath} {
+	paths := []string{}
+	if opts.WritesItems() {
+		paths = append(paths, opts.OutItemsPath)
+		paths = append(paths, opts.OutItemsPaths...)
+	}
+	if opts.WritesProperties() {
+		paths = append(paths, opts.OutPropsPath)
+	}
+
+	for _, path := range paths {
+		if path == "" {
+			continue
+		}
 		if err := checkWritable(path); err != nil {
 			return err
 		}

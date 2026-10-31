@@ -14,9 +14,11 @@ there is one source of truth.
 
 ## The three things that matter most
 
-1. **The job queue is generic; the runner is yours.** `internal/jobs` owns the lifecycle only. The domain goes in
+1. **The dataset is produced in two stages, in one binary.** The ETL worker (`internal/etl/`) trims the dump; the application
+   (`internal/wikidata/`) imports the result. The application never reads a dump and never trims anything.
+2. **The job queue is generic; the runner is yours.** `internal/jobs` owns the lifecycle only. The domain goes in
    `internal/runner/`. Do not put domain logic into `internal/jobs/`.
-2. **The frontend talks to Go, not to the database.** Every call goes through `internal/bindings/service.go` and the typed
+3. **The frontend talks to Go, not to the database.** Every call goes through `internal/bindings/service.go` and the typed
    wrappers in `frontend/src/bindings/index.ts`. Never import a generated binding file from a component.
 
 `frontend/bindings/` and `frontend/dist/` are generated and gitignored. Never hand-edit them. Regenerate with

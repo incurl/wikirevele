@@ -70,7 +70,13 @@ func TestDetectCompressionAcceptsAnEmptyStream(t *testing.T) {
 func TestThePipelineRefusesACompressedStream(t *testing.T) {
 	var items, properties bytes.Buffer
 
-	pipeline := NewPipeline(Options{Items: &items, Properties: &properties})
+	pipeline := NewPipeline(Options{
+		Targets: []*Target{
+			NewTarget(ParisQID, "", "", NewEntityWriter(&items), false),
+		},
+		Properties:      &properties,
+		WriteProperties: true,
+	})
 
 	_, err := pipeline.Run(context.Background(), strings.NewReader("BZh91AY&SY\x00\x00"))
 	if !errors.Is(err, ErrCompressedInput) {

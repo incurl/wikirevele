@@ -26,7 +26,15 @@ func TestTheRunIsRecorded(t *testing.T) {
 
 	command := "bzcat dump.json.bz2 | wikirevele etl --target-qid Q90"
 
-	id, err := service.Start(command, "Q90", true, "en,fr", "dump.json.bz2", "items.ndjson", "props.ndjson")
+	id, err := service.Start(
+		command,
+		[]string{"Q90"},
+		true,
+		"en,fr",
+		"dump.json.bz2",
+		[]string{"items.ndjson"},
+		"props.ndjson",
+	)
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
@@ -66,7 +74,7 @@ func TestTheRunIsRecorded(t *testing.T) {
 func TestTheEndOfTheRunIsRecorded(t *testing.T) {
 	service := newTestService(t)
 
-	id, err := service.Start("bzcat dump | wikirevele etl", "Q90", false, "en", "dump", "items", "props")
+	id, err := service.Start("bzcat dump | wikirevele etl", []string{"Q90"}, false, "en", "dump", []string{"items"}, "props")
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
@@ -93,7 +101,7 @@ func TestTheEndOfTheRunIsRecorded(t *testing.T) {
 func TestTheFailureIsRecorded(t *testing.T) {
 	service := newTestService(t)
 
-	id, err := service.Start("bzcat dump | wikirevele etl", "Q90", false, "en", "dump", "items", "props")
+	id, err := service.Start("bzcat dump | wikirevele etl", []string{"Q90"}, false, "en", "dump", []string{"items"}, "props")
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
@@ -118,7 +126,7 @@ func TestTheInterruptedRunsAreMarkedAsFailed(t *testing.T) {
 	service := newTestService(t)
 
 	// A run that was going when the application closed.
-	if _, err := service.Start("bzcat dump | wikirevele etl", "Q90", false, "en", "dump", "items", "props"); err != nil {
+	if _, err := service.Start("bzcat dump | wikirevele etl", []string{"Q90"}, false, "en", "dump", []string{"items"}, "props"); err != nil {
 		t.Fatalf("start: %v", err)
 	}
 
@@ -153,7 +161,7 @@ func TestTheRunsAreListedTheMostRecentFirst(t *testing.T) {
 	service := newTestService(t)
 
 	for _, target := range []string{"Q90", "Q148", "Q662548"} {
-		if _, err := service.Start("command "+target, target, false, "en", "dump", "items", "props"); err != nil {
+		if _, err := service.Start("command "+target, []string{target}, false, "en", "dump", []string{"items"}, "props"); err != nil {
 			t.Fatalf("start: %v", err)
 		}
 	}
@@ -174,7 +182,7 @@ func TestTheRunsAreListedTheMostRecentFirst(t *testing.T) {
 func TestARunIsRemoved(t *testing.T) {
 	service := newTestService(t)
 
-	id, err := service.Start("command", "Q90", false, "en", "dump", "items", "props")
+	id, err := service.Start("command", []string{"Q90"}, false, "en", "dump", []string{"items"}, "props")
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}

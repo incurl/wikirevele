@@ -123,7 +123,13 @@ func TestThePipelineReadsAnArray(t *testing.T) {
 	input := "[\n" + entity("Q1") + ",\n" + entity("Q2") + "\n]\n"
 
 	var items, properties bytes.Buffer
-	pipeline := NewPipeline(Options{Items: &items, Properties: &properties})
+	pipeline := NewPipeline(Options{
+		Targets: []*Target{
+			NewTarget(ParisQID, "", "", NewEntityWriter(&items), false),
+		},
+		Properties:      &properties,
+		WriteProperties: true,
+	})
 
 	stats, err := pipeline.Run(context.Background(), strings.NewReader(input))
 	if err != nil {

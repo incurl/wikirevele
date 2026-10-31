@@ -27,7 +27,10 @@ import {
   isLanguageCode,
   isQID,
   isRunning,
+  pairTargets,
   parseLanguages,
+  parseTargetLabels,
+  parseTargets,
   statusLabel,
 } from './command';
 
@@ -58,10 +61,13 @@ export function EtlPanel({ onNotify }: EtlPanelProps) {
 
   const [dumpPath, setDumpPath] = useState('');
   const [target, setTarget] = useState(DEFAULT_TARGET);
+  const [targetLabels, setTargetLabels] = useState('');
   const [recursive, setRecursive] = useState(false);
   const [langs, setLangs] = useState(DEFAULT_LANGS);
   const [itemsPath, setItemsPath] = useState(DEFAULT_ITEMS);
   const [propsPath, setPropsPath] = useState(DEFAULT_PROPS);
+  const [itemsOnly, setItemsOnly] = useState(false);
+  const [propertiesOnly, setPropertiesOnly] = useState(false);
   const [overwrite, setOverwrite] = useState(false);
 
   const [command, setCommand] = useState('');
@@ -69,39 +75,61 @@ export function EtlPanel({ onNotify }: EtlPanelProps) {
   const [progress, setProgress] = useState<EtlProgress | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // The targets of the run, as the backend takes them.
+  const targets = useMemo(
+    () => pairTargets(parseTargets(target), parseTargetLabels(targetLabels)),
+    [target, targetLabels],
+  );
+
   // The options of the run, as the backend takes them.
   const options = useMemo(
     () => ({
       dump_path: dumpPath,
-      target_qid: target.trim(),
+      target_qids: targets.map((t) => t.qid),
+      target_labels: targets.map((t) => t.label),
       recursive_p131: recursive,
       langs: parseLanguages(langs),
       out_items_path: itemsPath.trim(),
+      out_items_paths: [] as string[],
       out_props_path: propsPath.trim(),
+      items_only: itemsOnly,
+      properties_only: propertiesOnly,
       overwrite,
     }),
-    [dumpPath, target, recursive, langs, itemsPath, propsPath, overwrite],
+    [dumpPath, targets, recursive, langs, itemsPath, propsPath, itemsOnly, propertiesOnly, overwrite],
   );
 
   // The problems of the parameters, shown before the run starts.
   const problems = useMemo(() => {
     const found: string[] = [];
-    if (!isQID(target)) {
-      found.push('The target must be a Wikidata identifier, such as Q90.');
+
+    if (targets.length === 0) {
+      found.push('At least one target is required.');
+    }
+    for (const spec of targets) {
+      if (!isQID(spec.qid)) {
+        found.push(`The target "${spec.qid}" must be a Wikidata identifier, such as Q90.`);
+      }
     }
     for (const language of parseLanguages(langs)) {
       if (!isLanguageCode(language)) {
         found.push(`The language "${language}" is not a language code.`);
       }
     }
-    if (!itemsPath.trim() || !propsPath.trim()) {
-      found.push('The two output files are required.');
+    if (itemsOnly && propertiesOnly) {
+      found.push('The items only and the properties only cannot be asked for at the same time.');
+    }
+    if (!propertiesOnly && !itemsPath.trim()) {
+      found.push('The items output is required.');
+    }
+    if (!itemsOnly && !propsPath.trim()) {
+      found.push('The properties output is required.');
     }
     if (itemsPath.trim() && itemsPath.trim() === propsPath.trim()) {
       found.push('The items and the properties cannot be written to the same file.');
     }
     return found;
-  }, [target, langs, itemsPath, propsPath]);
+  }, [targets, langs, itemsPath, propsPath, itemsOnly, propertiesOnly]);
 
   // The command is built by the backend, so that it is exactly the
   // command the application will run.
@@ -207,17 +235,39 @@ export function EtlPanel({ onNotify }: EtlPanelProps) {
 
         <div className="field">
           <label className="field-label" htmlFor="etl-target">
-            Target
+            Targets
           </label>
           <input
             id="etl-target"
             className="input"
             type="text"
             value={target}
-            placeholder="Q90"
+            placeholder="Q90,Q148"
             onChange={(event) => setTarget(event.target.value)}
           />
-          <span className="field-hint">The Wikidata identifier the items are linked to.</span>
+          <span className="field-hint">
+            The Wikidata identifiers the items are linked to, separated by commas. The dump is read
+            once and every entity is checked against every target, so several targets cost one
+            pass and not one pass each.
+          </span>
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor="etl-labels">
+            Target names
+          </label>
+          <input
+            id="etl-labels"
+            className="input"
+            type="text"
+            value={targetLabels}
+            placeholder="paris,shanghai"
+            onChange={(event) => setTargetLabels(event.target.value)}
+          />
+          <span className="field-hint">
+            The names of the targets, in the same order. They name the output files, and they are
+            what the run reports.
+          </span>
         </div>
 
         <div className="field">
@@ -248,6 +298,10 @@ export function EtlPanel({ onNotify }: EtlPanelProps) {
             value={itemsPath}
             onChange={(event) => setItemsPath(event.target.value)}
           />
+          <span className="field-hint">
+            The file of the first target. The file of every other target is derived from it, with
+            the name of the target in it.
+          </span>
         </div>
 
         <div className="field">
@@ -261,6 +315,29 @@ export function EtlPanel({ onNotify }: EtlPanelProps) {
             value={propsPath}
             onChange={(event) => setPropsPath(event.target.value)}
           />
+          <span className="field-hint">
+            The property dictionary. It is the same for every target, so it is written once.
+          </span>
+        </div>
+
+        <div className="field field-row">
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={itemsOnly}
+              onChange={(event) => setItemsOnly(event.target.checked)}
+            />
+            <span>Items only</span>
+          </label>
+
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={propertiesOnly}
+              onChange={(event) => setPropertiesOnly(event.target.checked)}
+            />
+            <span>Properties only</span>
+          </label>
         </div>
 
         <div className="field field-row">
@@ -362,6 +439,12 @@ export function EtlPanel({ onNotify }: EtlPanelProps) {
               <span>Speed</span>
               <span className="text-dim">{formatSpeed(progress.speed_mbs)}</span>
             </div>
+            {progress.item_files.length > 0 && (
+              <div className="param-row">
+                <span>Files</span>
+                <span className="text-dim">{progress.item_files.join(', ')}</span>
+              </div>
+            )}
             {progress.error && (
               <p className="etl-error">{progress.error}</p>
             )}

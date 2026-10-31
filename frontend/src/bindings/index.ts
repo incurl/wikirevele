@@ -63,19 +63,43 @@ export type Settings = BindingsModels.SettingsView;
  * The languages are normalised here: the generator types a missing
  * array as nullable, and the backend always sends an array.
  */
-export type EtlJobOptions = Omit<BindingsModels.EtlJobOptions, 'langs'> & {
+/**
+ * The parameters of an ETL pipeline run.
+ *
+ * The arrays are normalised here: the generator types a missing array
+ * as nullable, and the backend always sends an array.
+ */
+export type EtlJobOptions = Omit<
+  BindingsModels.EtlJobOptions,
+  'langs' | 'target_qids' | 'target_labels' | 'out_items_paths'
+> & {
   langs: string[];
+  target_qids: string[];
+  target_labels: string[];
+  out_items_paths: string[];
 };
 
 /**
  * The state of an ETL pipeline run.
  */
-export type EtlProgress = BindingsModels.EtlProgress;
+export type EtlProgress = Omit<BindingsModels.EtlProgress, 'item_files'> & {
+  item_files: string[];
+};
 
 /**
  * One run of the ETL worker, as the history shows it.
+ *
+ * The targets and the item files are normalised here: the generator
+ * types a missing array as nullable, and the backend always sends an
+ * array.
  */
-export type EtlHistoryEntry = BindingsModels.EtlHistoryEntry;
+export type EtlHistoryEntry = Omit<
+  BindingsModels.EtlHistoryEntry,
+  'target_qids' | 'out_items_paths'
+> & {
+  target_qids: string[];
+  out_items_paths: string[];
+};
 
 /**
  * The Wails event name emitted when a job changes state.

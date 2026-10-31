@@ -74,8 +74,9 @@ type Progress struct {
 	FinishedAt time.Time `json:"finished_at"`
 	// Error is why the run failed. It is empty when it did not.
 	Error string `json:"error"`
-	// ItemFile is the file the items were written to.
-	ItemFile string `json:"item_file"`
+	// ItemFiles are the files the items were written to, one per
+	// target.
+	ItemFiles []string `json:"item_files"`
 	// PropFile is the file the properties were written to.
 	PropFile string `json:"prop_file"`
 }
@@ -319,7 +320,7 @@ func (s *Supervisor) Start(ctx context.Context, opts JobOptions) (Progress, erro
 		Status:    StatusRunning,
 		Command:   command,
 		StartedAt: now,
-		ItemFile:  opts.OutItemsPath,
+		ItemFiles: itemFilesOf(opts),
 		PropFile:  opts.OutPropsPath,
 	}
 
@@ -361,9 +362,12 @@ func (s *Supervisor) Start(ctx context.Context, opts JobOptions) (Progress, erro
 func workerArguments(opts JobOptions) []string {
 	arguments := []string{
 		"etl",
-		"--target-qid", opts.TargetQID,
+		"--target-qid", strings.Join(opts.TargetQIDs, ","),
 	}
 
+	if len(opts.TargetLabels) > 0 {
+		arguments = append(arguments, "--target-label", strings.Join(opts.TargetLabels, ","))
+	}
 	if opts.RecursiveP131 {
 		arguments = append(arguments, "--recursive-p131")
 	}
@@ -375,11 +379,54 @@ func workerArguments(opts JobOptions) []string {
 		"--out-props", opts.OutPropsPath,
 		"--events",
 	)
+	if len(opts.OutItemsPaths) > 0 {
+		arguments = append(arguments,
+			"--out-items-per-target", strings.Join(opts.OutItemsPaths, ","))
+	}
+	if opts.ItemsOnly {
+		arguments = append(arguments, "--items-only")
+	}
+	if opts.PropertiesOnly {
+		arguments = append(arguments, "--properties-only")
+	}
 	if opts.Overwrite {
 		arguments = append(arguments, "--overwrite")
 	}
 
 	return arguments
+}
+
+// itemFilesOfEvent returns the files of the items of a finished run.
+//
+// The event carries the list of the files, one per target, and the
+// first one on its own. The one on its own is used when the list is
+// empty, so that a worker that only knows about one target is read
+// correctly.
+func itemFilesOfEvent(event etl.Event) []string {
+	if len(event.ItemFiles) > 0 {
+		return event.ItemFiles
+	}
+
+	if event.ItemFile == "" {
+		return nil
+	}
+
+	return []string{event.ItemFile}
+}
+
+// itemFilesOf returns the file of every target of a job.
+//
+// The files the user named for the targets come first, and the file of
+// the first target is the one the user named in general.
+func itemFilesOf(opts JobOptions) []string {
+	files := make([]string, 0, len(opts.TargetQIDs))
+	files = append(files, opts.OutItemsPaths...)
+
+	if len(files) < len(opts.TargetQIDs) && opts.OutItemsPath != "" {
+		files = append(files, opts.OutItemsPath)
+	}
+
+	return files
 }
 
 // splitDecompressor returns the name and the arguments of the
@@ -431,7 +478,7 @@ func (s *Supervisor) readEvents(r *run, output io.Reader) {
 			})
 		case etl.EventDone:
 			s.update(r, func(p *Progress) {
-				p.ItemFile = event.ItemFile
+				p.ItemFiles = itemFilesOfEvent(event)
 				p.PropFile = event.PropFile
 			})
 		case etl.EventError:

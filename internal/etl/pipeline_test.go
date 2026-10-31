@@ -41,14 +41,19 @@ func skippedLine(kind string) string {
 }
 
 // runPipeline runs the pipeline over the given lines.
+//
+// It is the single target case: one items file and one property file.
 func runPipeline(t *testing.T, lines ...string) (string, string, Stats) {
 	t.Helper()
 
 	var items, properties bytes.Buffer
 
 	pipeline := NewPipeline(Options{
-		Items:      &items,
-		Properties: &properties,
+		Targets: []*Target{
+			NewTarget(ParisQID, "", "", NewEntityWriter(&items), false),
+		},
+		Properties:      &properties,
+		WriteProperties: true,
 	})
 
 	stats, err := pipeline.Run(context.Background(), strings.NewReader(strings.Join(lines, "\n")))
@@ -185,7 +190,13 @@ func TestPipelineStopsWhenTheContextIsCancelled(t *testing.T) {
 	cancel()
 
 	var items, properties bytes.Buffer
-	pipeline := NewPipeline(Options{Items: &items, Properties: &properties})
+	pipeline := NewPipeline(Options{
+		Targets: []*Target{
+			NewTarget(ParisQID, "", "", NewEntityWriter(&items), false),
+		},
+		Properties:      &properties,
+		WriteProperties: true,
+	})
 
 	_, err := pipeline.Run(ctx, strings.NewReader(itemLine("Q90", map[string]json.RawMessage{
 		"P131": entityStatement("P131", "wikibase-item", "Q90"),

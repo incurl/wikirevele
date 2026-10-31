@@ -1,7 +1,7 @@
 # The ETL worker: manual
 
-The `etl` subcommand turns the Wikidata dump into the two clean
-datasets the desktop application imports.
+The `etl` subcommand turns the Wikidata dump into the clean datasets
+the desktop application imports.
 
 It is the **same binary** as the desktop application. The subcommand
 decides which of the two modes runs, and the two never run together:
@@ -42,7 +42,7 @@ pipeline, read [`wikidata.md`](wikidata.md).
 
 ## What it does
 
-It reads the Wikidata dump **one entity at a time** and writes two
+It reads the Wikidata dump **one entity at a time** and writes the
 NDJSON files:
 
 ```
@@ -51,8 +51,15 @@ latest-all.json.bz2
         │  bzcat (another process)
         ▼
    stdin ──► wikirevele etl ──► paris-wikidata-subset.ndjson
-                                 wikidata-properties.ndjson
+                               shanghai-wikidata-subset.ndjson
+                               wikidata-properties.ndjson
 ```
+
+A run may extract **several targets at once**. The dump is read **once**
+and every entity is checked against every target, so the run costs one
+pass over the dump and not one pass per target. Each target gets its
+own file of items, and the property dictionary is written once for the
+whole run, because it is the same for every target.
 
 It reads both shapes the dump is published in:
 
@@ -67,7 +74,7 @@ the other.
 
 Three things happen in one pass over the dump:
 
-1. **Select** — keep the items that are linked to Paris.
+1. **Select** — keep the items that are linked to the targets.
 2. **Trim** — remove the fields and the languages nobody asked for.
 3. **Write** — one JSON object per line, so that the application can
    import the files a line at a time.
@@ -194,11 +201,15 @@ flushed, so a partial run still leaves usable files.
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `--target-qid` | `Q90` | The entity the items are linked to |
+| `--target-qid` | `Q90` | The entities the items are linked to, separated by commas |
+| `--target-label` | — | The names of the targets, in the same order |
 | `--langs` | `en,fr` | The languages that are kept |
-| `--out-items` | `paris-wikidata-subset.ndjson` | The file the items are written to |
+| `--out-items` | `paris-wikidata-subset.ndjson` | The file the items of the first target are written to |
+| `--out-items-per-target` | — | The file of every target, in the same order |
 | `--out-props` | `wikidata-properties.ndjson` | The file the properties are written to |
-| `--recursive-p131` | off | Keep everything inside the target |
+| `--items-only` | off | Write the items only, and not the property dictionary |
+| `--properties-only` | off | Write the property dictionary only, and not the items |
+| `--recursive-p131` | off | Keep everything inside the targets |
 | `--overwrite` | off | Allow replacing an output file that exists |
 | `--events` | off | Write the machine readable events to the standard output |
 | `--quiet` | off | Report nothing at all |
@@ -214,12 +225,24 @@ bzcat latest-all.json.bz2 | ./bin/wikirevele etl \
 
 ### `--target-qid`
 
-The entity whose neighbourhood is kept. The default is Paris.
+The entities whose neighbourhood is kept. The default is Paris. The
+identifiers are separated by commas, and **the dump is read once for
+all of them**: every entity of the dump is checked against every
+target, so several targets cost one pass over the dump and not one
+pass each.
 
 ```bash
 # Everything linked to Lyon.
 bzcat latest-all.json.bz2 | ./bin/wikirevele etl --target-qid Q456
+
+# Shanghai and New York in one pass, in two files.
+bzcat latest-all.json.bz2 | ./bin/wikirevele etl \
+  --target-qid Q148,Q60 \
+  --target-label shanghai,newyork
 ```
+
+An item that is linked to two targets is written to **both** files: the
+targets are independent, and the item belongs to both.
 
 The identifier is checked before the run starts: a target that is not
 one matches nothing, and a run that matches nothing looks like a
@@ -229,6 +252,48 @@ The property allowlist does **not** change with the target: the same
 eleven properties are read, and the target decides which entity they
 have to point at. A target that nothing points at gives an empty item
 file and a full property dictionary.
+
+### `--target-label`
+
+The names of the targets, in the same order as the identifiers. They
+name the output files of the other targets, and they are what the run
+reports.
+
+```bash
+bzcat latest-all.json.bz2 | ./bin/wikirevele etl \
+  --target-qid Q148,Q60 \
+  --target-label shanghai,newyork \
+  --out-items paris-wikidata-subset.ndjson
+```
+
+The command above writes three files: `paris-wikidata-subset.ndjson`
+for the first target, `shanghai-wikidata-subset.ndjson` for the second
+and `newyork-wikidata-subset.ndjson` for the third. The name of the
+first target replaces the first part of the file name, and the rest of
+it is shared.
+
+A target without a name is named after its identifier, and its file is
+`q148-wikidata-subset.ndjson`.
+
+### `--items-only` and `--properties-only`
+
+The two outputs are independent. A run that wants the items and not the
+dictionary says so, and the dictionary is not written.
+
+```bash
+# The items of Paris, and no dictionary.
+bzcat latest-all.json.bz2 | ./bin/wikirevele etl --target-qid Q90 --items-only
+
+# The dictionary, and no items.
+bzcat latest-all.json.bz2 | ./bin/wikirevele etl --target-qid Q90 --properties-only
+```
+
+The dictionary is the same for every target, so a run over several
+targets writes it **once**: there is one dictionary of the dump, not
+one per target.
+
+The two flags cannot be used together: the run would write nothing, and
+the command says so.
 
 ### `--langs`
 
@@ -244,8 +309,8 @@ ones are dropped and the duplicates are removed.
 
 ### `--recursive-p131`
 
-Keeps everything **inside** the target, following the administrative
-hierarchy: every entity that is located in the target, and every entity
+Keeps everything **inside** the targets, following the administrative
+hierarchy: every entity that is located in a target, and every entity
 that is located in one of those.
 
 ```bash
@@ -257,6 +322,10 @@ The hierarchy is walked **after** the pass over the dump, so the walk
 needs no second pass. An entity that is inside the target is kept even
 when it does not point at the target itself: a district that is
 located in a city that is located in the target is inside the target.
+
+Every target is walked on its own: the hierarchies of two targets are
+separate, and an entity that is inside one of them is not inside the
+other.
 
 ### `--overwrite`
 
@@ -303,7 +372,7 @@ the two channels never mix.
 ```
 
 ```json
-{"type":"done","itemFile":"items.ndjson","propFile":"props.ndjson","scanned":123456,"items":820,"properties":4100,"skipped":0,"malformed":0}
+{"type":"done","itemFile":"items.ndjson","itemFiles":["items.ndjson","shanghai.ndjson"],"propFile":"props.ndjson","scanned":123456,"items":820,"properties":4100,"skipped":0,"malformed":0}
 ```
 
 ```json
@@ -325,10 +394,15 @@ done scanned=8062 items=51 properties=0 skipped=8010 malformed=1
 
 ## The output
 
-Both files are **NDJSON**: one JSON value per line, no array wrapper.
+Every file is **NDJSON**: one JSON value per line, no array wrapper.
 A line can be read on its own, which is what lets the application
 import a file of a hundred thousand records without holding it in
 memory.
+
+There is one file of items per target, and one file of properties for
+the whole run. The `done` event names them all: `itemFiles` is the
+list, and `itemFile` is the first of it, for a reader that knows about
+one target only.
 
 ### An item
 

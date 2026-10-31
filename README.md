@@ -1,27 +1,32 @@
 # WikiRevele
 
-A desktop application scaffold: **Wails v3** + **PocketBase** + **Vite** +
-**React**, wired together and ready to be built on.
+A desktop application for exploring a **Wikidata** dataset: **Wails v3** +
+**PocketBase** + **Vite** + **React**, wired together and working.
 
-It is a template, not a product. The plumbing — the embedded database, the
-job queue, the event bridge, the debug console, the build and packaging
-tooling, the test setup — is done, so that a new project starts from a
-working application instead of an empty folder.
+It takes a Wikidata dump, trims it down to the entities that are linked
+to a place, imports the result into an embedded database, and lets you
+browse it as a gallery of cards with their claims, their qualifiers and
+their relationships.
+
+The dataset is produced in two stages, in **one binary**: the `etl`
+subcommand reads the dump and writes the trimmed files, and the
+application imports them. See [The Wikidata dataset](#the-wikidata-dataset).
 
 ```
 Wails webview
-├── React 19 + Vite + TypeScript + TanStack Query
+├── React 19 + Vite + TypeScript + TanStack Query + Refine
 │   ├── app/           the application shell
 │   ├── features/      one panel per concern
 │   ├── bindings/      typed wrappers over the generated bindings
 │   └── ui/            pure helpers, unit tested
 │
 └──── Wails bindings (primary channel) ───────────────────────┐
-        Go: internal/bindings/ → internal/jobs/ → internal/runner/
-                                                (your backend) │
-                            └→ internal/pocketbase/            │
-                                    (embedded, library)       │
-                                     └→ migrations, file fields│
+        Go: internal/bindings/ → internal/wikidata/            │
+                                → internal/etlpipeline/ → internal/etl/
+                                → internal/jobs/ → internal/runner/
+                             └→ internal/pocketbase/            │
+                                     (embedded, library)       │
+                                      └→ migrations, file fields│
         PocketBase's REST + file API mounted at /api/* on the    │
         same origin as the UI.                                   │
 ```
@@ -30,30 +35,20 @@ Wails webview
 
 | Piece | Where | What it does |
 | --- | --- | --- |
+| Wikidata panel | `frontend/src/features/wikidata/` | The gallery of the cards, the filters, the graph and the import |
+| Wikidata import | `internal/wikidata/` | Imports the datasets into PocketBase and reads them back for the panel |
+| Wikidata ETL worker | `internal/etl/` | The `etl` subcommand: reads a dump from the standard input and writes the two trimmed datasets |
+| ETL pipeline | `internal/etlpipeline/` | Builds the shell pipeline, runs it as a child process, and cancels it |
+| ETL history | `internal/etlhistory/` | The record of the runs, in PocketBase |
 | Job queue | `internal/jobs/` | Persistence, scheduling, cancellation, status transitions, events |
-| Runner | `internal/runner/` | **The extension point.** The scaffold ships an echo runner; replace it |
+| Runner | `internal/runner/` | The extension point of the queue: it ships an echo runner, and a real one replaces it |
 | Embedded database | `internal/pocketbase/` | Bootstrap, migrations, settings, encrypted secrets |
 | Wails services | `internal/bindings/` | The API the frontend calls |
 | Debug console | `internal/console/` | An in-memory log of the application traffic, shown in the UI |
 | React shell | `frontend/src/` | A navigator that switches the centre view between the scopes, with the job queue in a rail |
-| Wikidata ETL worker | `internal/etl/` | The `etl` subcommand: reads a dump from the standard input and writes the two trimmed datasets |
-| ETL pipeline | `internal/etlpipeline/` | Builds the shell pipeline, runs it as a child process, and cancels it |
-| ETL history | `internal/etlhistory/` | The record of the runs, in PocketBase |
-| Wikidata import | `internal/wikidata/` | Imports the datasets into PocketBase and reads them back for the panel |
 
 The frontend talks to the backend **only** through the Wails bindings. It
 never talks to PocketBase or to a remote API directly.
-
-### The collections
-
-| Collection | Purpose |
-| --- | --- |
-| `jobs` | The job metadata: the prompt, the parameters, the status, the result, the errors |
-| `artifacts` | The files a job produced or consumed, with their metadata |
-| `app_settings` | The encrypted secrets and the preferences |
-| `wikidata_items` | The imported Wikidata items, one record per item, keyed by `qid` |
-| `wikidata_properties` | The imported property dictionary, one record per property, keyed by `pid` |
-| `etl_job_history` | The extractions: the command that was run, its parameters and what came of it |
 
 ## Requirements
 
@@ -100,25 +95,71 @@ task build:server     # a headless HTTP server binary
 task build:docker     # a minimal container image
 ```
 
-## Making it yours
+## Getting a dataset
 
-### 1. Rename it
+The application browses what is in its database, so the first thing to
+do is to put a dataset there. The **Extract** scope does it from the
+interface: it takes the path of a dump, builds the shell pipeline that
+trims it, shows the command in a copyable block, and runs it as a child
+process.
 
-| What | Where |
-| --- | --- |
-| The module path | `go.mod` |
-| The product name | `build/config.yml`, `build/*/Taskfile.yml`, `internal/bindings/service.go` |
-| The bundle identifier | `build/config.yml`, `build/darwin/Info.plist`, `build/ios/Info.plist` |
-| The frontend name | `frontend/package.json` |
+The **Import** scope then loads the two files it produced into
+PocketBase, and the **Workarea** shows the cards.
 
-The `APP_NAME` variable in the root `Taskfile.yml` drives the binary name
-and the package names.
+Both steps are also available from a terminal, which is useful when the
+dump is on another machine. See [The Wikidata dataset](#the-wikidata-dataset)
+for the commands.
 
-### 2. Write your runner
+## Extending it
 
-The queue is generic. A job carries a title, a prompt, an arbitrary set of
-parameters and an arbitrary result, and the work is delegated to a
-`jobs.Runner`:
+### 1. Extend the schema
+
+The schema lives in `internal/pocketbase/migrations/`. Add a migration
+with a **later timestamp** than the ones already applied — the list is
+sorted by file name, so the name is the ordering key:
+
+```go
+func init() {
+    registerMigration("1738000000_add_notes.go", func(app core.App) error {
+        collection, err := app.FindCollectionByNameOrId("jobs")
+        if err != nil {
+            return err
+        }
+        if collection.Fields.GetByName("notes") != nil {
+            return nil // already applied
+        }
+        collection.Fields.Add(&core.TextField{Name: "notes"})
+        return app.Save(collection)
+    })
+}
+```
+
+An applied migration is never edited: a change to the schema is a new
+migration with a later name.
+
+### 2. Extend the frontend
+
+`frontend/src/features/` holds one panel per concern. Add yours next to
+them and wire it into `frontend/src/app/App.tsx`.
+
+The shell has two things worth knowing about:
+
+- The **debug console** is hidden until it is asked for, with
+  **Ctrl+Shift+I** or with the **Console** button in the header. The
+  button carries the error count, so a failure is visible while the
+  console is closed.
+- The **settings dialog** is tabbed: the credentials are on the
+  *Connection* tab and the interface scale on the *Zoom* tab.
+
+The generated bindings are plain JavaScript with JSDoc types. They are
+re-exported behind a strongly typed surface in `frontend/src/bindings/`,
+so the components never import a generated file directly.
+
+### 3. Give the queue a real runner
+
+The job queue is generic and stays that way: a job carries a title, a
+prompt, an arbitrary set of parameters and an arbitrary result, and the
+work is delegated to a `jobs.Runner`:
 
 ```go
 type Runner interface {
@@ -126,16 +167,18 @@ type Runner interface {
 }
 ```
 
-Replace `internal/runner/echo.go` with your own:
+The queue ships an echo runner (`internal/runner/echo.go`) and a
+reference one (`internal/runner/example.go`). Replace the echo runner
+with one that does the work you need:
 
 ```go
-// MyRunner talks to the remote API.
-type MyRunner struct {
+// WikidataRunner runs a job against the remote API.
+type WikidataRunner struct {
     settings *pocketbase.SettingsStore
     log      *console.Log
 }
 
-func (r *MyRunner) Run(ctx context.Context, job jobs.Job) (*jobs.Result, error) {
+func (r *WikidataRunner) Run(ctx context.Context, job jobs.Job) (*jobs.Result, error) {
     apiKey, found, err := r.settings.GetAPIKey()
     if err != nil {
         return nil, err
@@ -172,53 +215,13 @@ jobManager := jobs.NewManager(
     pbService.App(),
     jobs.WithLog(consoleLog),
     jobs.WithRunnerFunc(func() jobs.Runner {
-        return runner.NewMyRunner(settings, consoleLog)
+        return runner.NewWikidataRunner(settings, consoleLog)
     }),
 )
 ```
 
 The queue, the persistence, the cancellation, the events and the history
 all work the same way, whatever the runner does.
-
-### 3. Extend the schema
-
-The schema lives in `internal/pocketbase/migrations/`. Add a migration
-with a **later timestamp** than the ones already applied — the list is
-sorted by file name, so the name is the ordering key:
-
-```go
-func init() {
-    registerMigration("1732000000_add_notes.go", func(app core.App) error {
-        collection, err := app.FindCollectionByNameOrId("jobs")
-        if err != nil {
-            return err
-        }
-        if collection.Fields.GetByName("notes") != nil {
-            return nil // already applied
-        }
-        collection.Fields.Add(&core.TextField{Name: "notes"})
-        return app.Save(collection)
-    })
-}
-```
-
-### 4. Extend the frontend
-
-`frontend/src/features/` holds one panel per concern. Add yours next to
-them and wire it into `frontend/src/app/App.tsx`.
-
-The shell has two things worth knowing about:
-
-- The **debug console** is hidden until it is asked for, with
-  **Ctrl+Shift+I** or with the **Console** button in the header. The
-  button carries the error count, so a failure is visible while the
-  console is closed.
-- The **settings dialog** is tabbed: the credentials are on the
-  *Connection* tab and the interface scale on the *Zoom* tab.
-
-The generated bindings are plain JavaScript with JSDoc types. They are
-re-exported behind a strongly typed surface in `frontend/src/bindings/`,
-so the components never import a generated file directly.
 
 ## Data
 
@@ -241,6 +244,7 @@ Set `WIKIREVELE_DATA_DIR` to relocate it.
 | `app_settings` | The encrypted secrets and the preferences |
 | `wikidata_items` | The imported Wikidata items, one record per item, keyed by `qid` |
 | `wikidata_properties` | The imported property dictionary, one record per property, keyed by `pid` |
+| `etl_job_history` | The extractions: the command that was run, its parameters and what came of it |
 
 All writes go through the Go services: the `create`, `update` and `delete`
 rules are closed, so the frontend can only read. PocketBase's own rules,
@@ -295,6 +299,25 @@ import panel, and then works on the records of the database.
 
 The application never reads a dump and never trims anything: the
 trimming happens once, in the ETL stage.
+
+### Several targets in one run
+
+A run may extract **several targets at once**, and the dump is read
+**once** for all of them:
+
+```bash
+bzcat latest-all.json.bz2 | ./bin/wikirevele etl \
+  --target-qid Q90,Q148,Q60 \
+  --target-label paris,shanghai,newyork
+```
+
+Every entity of the dump is checked against every target, so the run
+costs one pass over the dump and not one pass per target. Each target
+gets its own file of items, and the property dictionary is written
+**once**: it is the same for every target.
+
+The items and the dictionary are independent too: `--items-only` and
+`--properties-only` say which of the two a run writes.
 
 ### The two ways to run it
 

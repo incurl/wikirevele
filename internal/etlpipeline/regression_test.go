@@ -53,7 +53,7 @@ echo '{"type":"done","itemFile":"items.ndjson","propFile":"props.ndjson","scanne
 
 	progress, err := supervisor.Start(context.Background(), JobOptions{
 		DumpPath:     dump,
-		TargetQID:    "Q90",
+		TargetQIDs:   []string{"Q90"},
 		OutItemsPath: filepath.Join(directory, "items.ndjson"),
 		OutPropsPath: filepath.Join(directory, "props.ndjson"),
 	})
@@ -82,8 +82,8 @@ echo '{"type":"done","itemFile":"items.ndjson","propFile":"props.ndjson","scanne
 	if final.CollectedProperties != 3 {
 		t.Errorf("the run counted %d properties, want 3", final.CollectedProperties)
 	}
-	if final.ItemFile != "items.ndjson" {
-		t.Errorf("the items file is %q, want items.ndjson", final.ItemFile)
+	if len(final.ItemFiles) != 1 || final.ItemFiles[0] != "items.ndjson" {
+		t.Errorf("the items files are %v, want [items.ndjson]", final.ItemFiles)
 	}
 }
 
@@ -116,7 +116,7 @@ func TestTheSupervisorDoesNotWaitForAGrandchild(t *testing.T) {
 
 	progress, err := supervisor.Start(context.Background(), JobOptions{
 		DumpPath:     dump,
-		TargetQID:    "Q90",
+		TargetQIDs:   []string{"Q90"},
 		OutItemsPath: filepath.Join(directory, "items.ndjson"),
 		OutPropsPath: filepath.Join(directory, "props.ndjson"),
 	})
@@ -160,7 +160,7 @@ func TestTheSupervisorCancelsARunWithAChild(t *testing.T) {
 
 	progress, err := supervisor.Start(context.Background(), JobOptions{
 		DumpPath:     dump,
-		TargetQID:    "Q90",
+		TargetQIDs:   []string{"Q90"},
 		OutItemsPath: filepath.Join(directory, "items.ndjson"),
 		OutPropsPath: filepath.Join(directory, "props.ndjson"),
 	})

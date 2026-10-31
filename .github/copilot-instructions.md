@@ -4,7 +4,11 @@ A desktop application for exploring a Wikidata dataset, built on Wails v3, an em
 
 Read `AGENTS.md` for the working rules, the commands and the change routing. This file is the short version.
 
-## The one concept
+## The two concepts
+
+**The dataset is produced in two stages, in one binary.** The ETL worker (`internal/etl/`) reads a dump from the standard input
+and writes two trimmed NDJSON files; the application (`internal/wikidata/`) imports them into PocketBase and reads them back for
+the panel. The application never reads a dump and never trims anything.
 
 **The job queue is generic; the runner is yours.**
 

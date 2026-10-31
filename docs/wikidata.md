@@ -70,6 +70,29 @@ at a time.
 
 The command makes no network request and reads no configuration file.
 
+### Several targets in one run
+
+A run may extract **several targets at once**, and the dump is read
+**once** for all of them:
+
+```bash
+bzcat latest-all.json.bz2 | ./bin/wikirevele etl \
+  --target-qid Q90,Q148,Q60 \
+  --target-label paris,shanghai,newyork
+```
+
+Every entity of the dump is checked against every target, so the run
+costs one pass over the dump and not one pass per target. Each target
+gets its own file of items, and the property dictionary is written
+**once**: it is the same for every target.
+
+The targets are independent. An item that is linked to two targets is
+written to both files, and the administrative hierarchy of each target
+is walked on its own.
+
+The items and the dictionary are also independent: `--items-only` and
+`--properties-only` say which of the two the run writes.
+
 ### What it keeps
 
 An item is kept for a target when **one of its mainsnak statements**

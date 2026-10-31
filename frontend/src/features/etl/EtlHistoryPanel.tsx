@@ -77,7 +77,7 @@ export function EtlHistoryPanel({ onNotify }: EtlHistoryPanelProps) {
                 <span className={`etl-status etl-status-${entry.status}`}>
                   {statusLabel(entry.status)}
                 </span>
-                <span className="text-dim">{entry.target_qid}</span>
+                <span className="text-dim">{entry.target_qids.join(', ')}</span>
                 <span className="text-dim">{entry.started_at}</span>
               </div>
 

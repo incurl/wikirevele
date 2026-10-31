@@ -44,9 +44,14 @@ type ProgressEvent struct {
 type DoneEvent struct {
 	// Type is always "done".
 	Type string `json:"type"`
-	// ItemFile is the file the items were written to.
-	ItemFile string `json:"itemFile"`
+	// ItemFiles are the files the items were written to, one per
+	// target.
+	//
+	// It is empty when the run wrote the property dictionary only.
+	ItemFiles []string `json:"itemFiles"`
 	// PropFile is the file the properties were written to.
+	//
+	// It is empty when the run wrote the items only.
 	PropFile string `json:"propFile"`
 	// Scanned is the number of lines read from the input.
 	Scanned int64 `json:"scanned"`
@@ -100,6 +105,9 @@ type Event struct {
 	// ItemFile is the file the items were written to.
 	// It belongs to a done event.
 	ItemFile string `json:"itemFile,omitempty"`
+	// ItemFiles are the files the items were written to, one per
+	// target. It belongs to a done event.
+	ItemFiles []string `json:"itemFiles,omitempty"`
 	// PropFile is the file the properties were written to.
 	// It belongs to a done event.
 	PropFile string `json:"propFile,omitempty"`
@@ -171,9 +179,18 @@ func (w *EventWriter) Done(event DoneEvent) error {
 	if !w.Enabled() {
 		return nil
 	}
+
+	// The first file is also carried on its own, so that a reader that
+	// knows about one target does not have to know about the list.
+	first := ""
+	if len(event.ItemFiles) > 0 {
+		first = event.ItemFiles[0]
+	}
+
 	return w.write(Event{
 		Type:       EventDone,
-		ItemFile:   event.ItemFile,
+		ItemFile:   first,
+		ItemFiles:  event.ItemFiles,
 		PropFile:   event.PropFile,
 		Scanned:    event.Scanned,
 		Items:      event.Items,

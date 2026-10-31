@@ -97,11 +97,11 @@ func (s *Service) Start(ctx context.Context, opts JobOptions) (Progress, error) 
 
 	recordID, err := s.history.Start(
 		command,
-		opts.TargetQID,
+		opts.TargetQIDs,
 		opts.RecursiveP131,
 		strings.Join(opts.Languages, ","),
 		opts.DumpPath,
-		opts.OutItemsPath,
+		itemFilesOf(opts),
 		opts.OutPropsPath,
 	)
 	if err != nil {
@@ -152,7 +152,7 @@ func (s *Service) finished(progress Progress) {
 
 	// The output of a successful run is imported, so that the panel
 	// shows the new dataset without the user having to ask for it.
-	_ = s.Import(progress.ItemFile, progress.PropFile)
+	_ = s.Import(progress.ItemFiles, progress.PropFile)
 }
 
 // Cancel stops a running job.
@@ -177,12 +177,20 @@ func (s *Service) Delete(recordID string) error {
 //
 // It is called when a run succeeds. The import runs in the background,
 // and the progress is pushed to the interface.
-func (s *Service) Import(itemsPath, propsPath string) error {
+//
+// A run over several targets wrote one file of items per target, and
+// every one of them is imported: the items of the targets are merged
+// into the same collection, and the identifier of an item is its key,
+// so an item that belongs to two targets is imported once.
+func (s *Service) Import(itemsPaths []string, propsPath string) error {
 	if s.importer == nil {
 		return fmt.Errorf("etlpipeline: the importer is not available")
 	}
 
-	if itemsPath != "" {
+	for _, itemsPath := range itemsPaths {
+		if itemsPath == "" {
+			continue
+		}
 		if err := s.importer.ImportFile(wikidata.KindItems, itemsPath); err != nil {
 			return err
 		}

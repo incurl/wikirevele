@@ -103,7 +103,7 @@ echo '{"type":"done","itemFile":"items.ndjson","propFile":"props.ndjson","scanne
 
 	progress, err := supervisor.Start(context.Background(), JobOptions{
 		DumpPath:     dump,
-		TargetQID:    "Q90",
+		TargetQIDs:   []string{"Q90"},
 		OutItemsPath: filepath.Join(directory, "items.ndjson"),
 		OutPropsPath: filepath.Join(directory, "props.ndjson"),
 	})
@@ -135,8 +135,8 @@ echo '{"type":"done","itemFile":"items.ndjson","propFile":"props.ndjson","scanne
 	if final.ProcessedLines != 100 {
 		t.Errorf("the run counted %d lines, want 100", final.ProcessedLines)
 	}
-	if final.ItemFile != "items.ndjson" {
-		t.Errorf("the items file is %q, want items.ndjson", final.ItemFile)
+	if len(final.ItemFiles) != 1 || final.ItemFiles[0] != "items.ndjson" {
+		t.Errorf("the items files are %v, want [items.ndjson]", final.ItemFiles)
 	}
 }
 
@@ -161,7 +161,7 @@ func TestTheSupervisorGivesTheWorkerTheOptions(t *testing.T) {
 
 	progress, err := supervisor.Start(context.Background(), JobOptions{
 		DumpPath:      dump,
-		TargetQID:     "Q148",
+		TargetQIDs:    []string{"Q148"},
 		RecursiveP131: true,
 		Languages:     []string{"en", "zh"},
 		OutItemsPath:  filepath.Join(directory, "items.ndjson"),
@@ -209,7 +209,7 @@ func TestTheSupervisorRecordsAFailedRun(t *testing.T) {
 
 	progress, err := supervisor.Start(context.Background(), JobOptions{
 		DumpPath:     dump,
-		TargetQID:    "Q90",
+		TargetQIDs:   []string{"Q90"},
 		OutItemsPath: filepath.Join(directory, "items.ndjson"),
 		OutPropsPath: filepath.Join(directory, "props.ndjson"),
 	})
@@ -248,7 +248,7 @@ func TestTheSupervisorCancelsARun(t *testing.T) {
 
 	progress, err := supervisor.Start(context.Background(), JobOptions{
 		DumpPath:     dump,
-		TargetQID:    "Q90",
+		TargetQIDs:   []string{"Q90"},
 		OutItemsPath: filepath.Join(directory, "items.ndjson"),
 		OutPropsPath: filepath.Join(directory, "props.ndjson"),
 	})
@@ -292,7 +292,7 @@ func TestTheSupervisorRefusesAMissingDecompressor(t *testing.T) {
 
 	_, err := supervisor.Start(context.Background(), JobOptions{
 		DumpPath:     dump,
-		TargetQID:    "Q90",
+		TargetQIDs:   []string{"Q90"},
 		OutItemsPath: filepath.Join(directory, "items.ndjson"),
 		OutPropsPath: filepath.Join(directory, "props.ndjson"),
 	})
@@ -314,7 +314,7 @@ func TestTheSupervisorRefusesAMissingDump(t *testing.T) {
 
 	_, err := supervisor.Start(context.Background(), JobOptions{
 		DumpPath:     filepath.Join(t.TempDir(), "there-is-no-such-dump.json.bz2"),
-		TargetQID:    "Q90",
+		TargetQIDs:   []string{"Q90"},
 		OutItemsPath: "items.ndjson",
 		OutPropsPath: "props.ndjson",
 	})

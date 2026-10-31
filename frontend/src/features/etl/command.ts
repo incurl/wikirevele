@@ -13,6 +13,59 @@
 export type EtlStatus = 'running' | 'succeeded' | 'cancelled' | 'failed';
 
 /**
+ * One target of a run.
+ *
+ * A run may extract several entities at once. The dump is read once and
+ * every entity is checked against every target, so the run costs one
+ * pass over the dump and not one pass per target.
+ */
+export interface TargetSpec {
+  /** The Wikidata identifier, such as Q90. */
+  readonly qid: string;
+  /** The name of the target, such as "shanghai". It may be empty. */
+  readonly label: string;
+}
+
+/**
+ * Parses the targets of the parameter field.
+ *
+ * The field holds the identifiers separated by commas: "Q90,Q148". The
+ * identifiers are trimmed and the empty ones are dropped, so that a
+ * trailing comma does not produce an empty target.
+ */
+export function parseTargets(value: string): string[] {
+  return value
+    .split(',')
+    .map((qid) => qid.trim())
+    .filter((qid) => qid.length > 0);
+}
+
+/**
+ * Parses the names of the targets.
+ *
+ * The names are in the same order as the identifiers. A target without
+ * a name is named after its identifier.
+ */
+export function parseTargetLabels(value: string): string[] {
+  return value
+    .split(',')
+    .map((label) => label.trim());
+}
+
+/**
+ * Pairs the identifiers with the names.
+ *
+ * A target without a name gets the identifier as its name, so that the
+ * two lists always have the same length and the same order.
+ */
+export function pairTargets(qids: string[], labels: string[]): TargetSpec[] {
+  return qids.map((qid, index) => ({
+    qid,
+    label: labels[index] && labels[index].length > 0 ? labels[index] : qid,
+  }));
+}
+
+/**
  * Parses the languages of the parameter field.
  *
  * The field holds the codes separated by commas: "en,zh,fr". The
@@ -34,6 +87,22 @@ export function parseLanguages(value: string): string[] {
  */
 export function formatLanguages(languages: string[]): string {
   return languages.join(',');
+}
+
+/**
+ * Writes the identifiers back into the parameter field.
+ *
+ * The round trip has to hold, the same way it does for the languages.
+ */
+export function formatTargets(qids: string[]): string {
+  return qids.join(',');
+}
+
+/**
+ * Writes the names of the targets back into the parameter field.
+ */
+export function formatTargetLabels(labels: string[]): string {
+  return labels.join(',');
 }
 
 /**

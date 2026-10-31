@@ -119,3 +119,74 @@ _Avoid_: Schema file, Upgrade, Patch
 The headless build of the same binary, compiled with `-tags server`. It serves the frontend and the PocketBase API over HTTP
 with no GUI dependencies.
 _Avoid_: Web mode, Headless mode, Docker mode
+
+## The dataset
+
+**Dump**:
+The Wikidata JSON dump. It is a stream of JSON entities, one per line, and it is more than a hundred gigabytes. It reaches the
+ETL worker through the standard input, already decompressed.
+_Avoid_: Dataset, Snapshot, Export, Archive
+
+**ETL worker**:
+The `etl` subcommand of the binary. It reads a dump, keeps the entities that are linked to the target, trims them, and writes
+two NDJSON files. It never opens the database.
+_Avoid_: Importer, Loader, Indexer, Parser
+
+**Target**:
+The entity a dataset is built around, named by its QID. For the Paris exploration it is `Q90`. It is the value the kept
+statements must point at. A run may have **several** targets, and the dump is read once for all of them.
+_Avoid_: Subject, Root, Anchor, Seed
+
+**Target set**:
+The targets of one run. Every entity of the dump is checked against every one of them, so the run costs one pass over the
+dump and not one pass per target.
+_Avoid_: Multi-target, Batch, Group
+
+**Property dictionary**:
+The catalogue of every property of the dump. It is the same for every target, so a run writes it once and not once per
+target.
+_Avoid_: Property file, Schema, Dictionary
+
+**Item**:
+A Wikidata entity that is not a property: a thing, a place, a person. It is stored as one record of `wikidata_items`, keyed by
+its QID.
+_Avoid_: Entity, Node, Subject, Object
+
+**Property**:
+A Wikidata property: the kind of statement an item can make. It is stored as one record of `wikidata_properties`, keyed by its
+PID. The dictionary is small enough to be sent whole to the panel, which needs the names to label the claims.
+_Avoid_: Attribute, Field, Relation, Predicate
+
+**QID**:
+The identifier of an item, such as `Q90`. It is the key of the `wikidata_items` collection.
+_Avoid_: ID, Identifier, Key
+
+**PID**:
+The identifier of a property, such as `P131`. It is the key of the `wikidata_properties` collection.
+_Avoid_: ID, Identifier, Key
+
+**Claim**:
+A statement of an item: a property, a value, and optionally some qualifiers and references. The claims of an item are stored
+whole, as the JSON tree of the dataset, so that the panel can read the qualifiers and the references of a statement.
+_Avoid_: Property, Statement pair, Fact, Attribute
+
+**Subset**:
+The NDJSON file of the items that are linked to the target. The other file is the **property dictionary**.
+_Avoid_: Sample, Subset file, Trimmed dump
+
+**Import**:
+The operation that upserts the two NDJSON files into PocketBase. It runs in the background and reports its progress as an event.
+_Avoid_: Load, Sync, Ingest
+
+**Extraction**:
+One run of the ETL worker, with its parameters and its outcome. It is recorded in `etl_job_history`, and the command that
+produced it can be copied out and run again in a terminal.
+_Avoid_: ETL run, Job, Task
+
+**Items file**:
+The NDJSON file of the items of one target. A run over several targets writes one file per target.
+_Avoid_: Subset file, Item set, Output
+
+**Workarea**:
+The scope of the navigator that shows the gallery of the imported cards. It is the default scope.
+_Avoid_: Home, Dashboard, Browser, Gallery

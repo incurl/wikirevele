@@ -91,34 +91,41 @@ func (r *TextReporter) Report(stats Stats) {
 		stats.Scanned, stats.Items, stats.Properties, stats.Skipped, stats.Malformed)
 }
 
-// Pipeline reads a dump and writes the two trimmed datasets.
+// Pipeline reads a dump and writes the trimmed datasets.
 //
 // It holds one entity in memory at a time. The scanner reads a line,
 // the line is decoded, and the line is dropped: nothing accumulates
 // except the counters and, in the recursive mode, the edges of the
-// administrative hierarchy.
+// administrative hierarchies.
+//
+// A run may extract several targets at once. The dump is read once,
+// and every entity is checked against every target: an item that is
+// linked to Shanghai and to New York is written to both files. Reading
+// the dump once is the whole point: the dump is more than a hundred
+// gigabytes, and a run per target would read it once per target.
 type Pipeline struct {
-	// items writes the items that are linked to the target.
-	items *EntityWriter
+	// targets are the entities the items are extracted for.
+	//
+	// The pipeline holds one target per extraction, and the run of a
+	// single target is the degenerate case of one target.
+	targets []*Target
+	// targetPatterns are the patterns of every target, for the fast
+	// path.
+	targetPatterns [][]byte
 	// properties writes the property dictionary.
 	properties *EntityWriter
+	// writeProperties tells whether the dictionary is written at all.
+	//
+	// A run that was asked for the items only does not write it.
+	writeProperties bool
 	// reporter is told about the progress. It may be nil.
 	reporter Reporter
 	// log receives the lines that could not be read. It may be nil.
 	log *slog.Logger
-	// target is the entity the items are linked to.
-	target string
-	// targetPattern is the target as it is written in the dump, with
-	// the quotes of the JSON string.
-	targetPattern []byte
 	// trim says which languages are kept.
 	trim TrimOptions
 	// recursive tells whether the administrative hierarchy is walked.
 	recursive bool
-	// hierarchy holds the edges of the administrative hierarchy.
-	//
-	// It is only built in the recursive mode.
-	hierarchy *Hierarchy
 	// events writes the machine readable events of the run. It may be
 	// nil, in which case the events are not written.
 	events *EventWriter
@@ -128,19 +135,24 @@ type Pipeline struct {
 
 // Options configures a Pipeline.
 type Options struct {
-	// Items receives the items that are linked to the target.
-	Items io.Writer
+	// Targets are the entities the items are extracted for.
+	//
+	// It is empty when the run writes the property dictionary only.
+	Targets []*Target
 	// Properties receives the property dictionary.
 	Properties io.Writer
-	// Target is the entity the items are linked to. It defaults to
-	// Paris.
-	Target string
+	// WriteProperties tells whether the dictionary is written.
+	//
+	// It is false when the run was asked for the items only. The
+	// dictionary is the same for every target, so it is written once
+	// per run and not once per target.
+	WriteProperties bool
 	// Languages are the languages of the labels, descriptions and
 	// aliases that are kept. It is empty when the defaults are
 	// wanted.
 	Languages []string
 	// Recursive tells whether the administrative hierarchy is walked
-	// from the target, so that everything inside it is kept.
+	// from the targets, so that everything inside them is kept.
 	Recursive bool
 	// Reporter is told about the progress every ProgressInterval lines.
 	// It may be nil, in which case there is no progress output.
@@ -155,26 +167,20 @@ type Options struct {
 
 // NewPipeline creates a pipeline that writes to the given writers.
 func NewPipeline(opts Options) *Pipeline {
-	target := opts.Target
-	if target == "" {
-		target = ParisQID
-	}
-
 	pipeline := &Pipeline{
-		items:         NewEntityWriter(opts.Items),
-		properties:    NewEntityWriter(opts.Properties),
-		reporter:      opts.Reporter,
-		log:           opts.Logger,
-		target:        target,
-		targetPattern: []byte(`"` + target + `"`),
-		trim:          TrimOptionsFor(opts.Languages),
-		recursive:     opts.Recursive,
-		events:        opts.Events,
-		started:       time.Now(),
+		targets:         opts.Targets,
+		properties:      NewEntityWriter(opts.Properties),
+		writeProperties: opts.WriteProperties,
+		reporter:        opts.Reporter,
+		log:             opts.Logger,
+		trim:            TrimOptionsFor(opts.Languages),
+		recursive:       opts.Recursive,
+		events:          opts.Events,
+		started:         time.Now(),
 	}
 
-	if pipeline.recursive {
-		pipeline.hierarchy = NewHierarchy()
+	for _, target := range pipeline.targets {
+		pipeline.targetPatterns = append(pipeline.targetPatterns, target.pattern)
 	}
 
 	return pipeline
@@ -213,24 +219,24 @@ func looksLikeObject(line []byte) bool {
 	return trimmed[0] == '{' && trimmed[len(trimmed)-1] == '}'
 }
 
-// canContribute tells whether a line is worth reading.
+// canContribute tells whether a line of the dump is worth reading.
 //
-// A line contributes when it mentions the target, or when it declares
-// a property, or when it carries a statement of the hierarchy and the
-// recursive mode is on.
+// A line contributes when it mentions one of the targets, or when it
+// declares a property, or when it carries a statement of the hierarchy
+// and the recursive mode is on.
 //
 // The search is a byte search: the identifiers are written verbatim in
 // the dump, so the answer does not need the line to be decoded.
 func (p *Pipeline) canContribute(line []byte) bool {
-	if bytes.Contains(line, p.targetPattern) {
+	if containsAny(line, p.targetPatterns) {
 		return true
 	}
 
-	if hasTypeValue(line, propertyType) {
+	if p.writeProperties && hasTypeValue(line, propertyType) {
 		return true
 	}
 
-	return p.hierarchy != nil && bytes.Contains(line, locationPattern)
+	return p.recursive && bytes.Contains(line, locationPattern)
 }
 
 // hasTypeValue tells whether the line holds the type field with the
@@ -383,7 +389,7 @@ func (p *Pipeline) Run(ctx context.Context, r io.Reader) (Stats, error) {
 // mode it does nothing: the items were written as they were read.
 //
 // It is called after Run. It flushes the items on its own, because it
-// reads the items file back.
+// reads the items files back.
 //
 // The recursive mode writes the items file twice. The first pass writes
 // the items that point at the target, and the second one writes the
@@ -393,31 +399,56 @@ func (p *Pipeline) Run(ctx context.Context, r io.Reader) (Stats, error) {
 // the lines that are not reachable are dropped. Holding the items in
 // memory would cost more than the hierarchy does, and the items file
 // of a full run is large.
-func (p *Pipeline) Finish(itemsPath string) error {
-	if !p.recursive || p.hierarchy == nil {
+//
+// Every target is filtered on its own. The hierarchies of two targets
+// are separate: Shanghai and New York have nothing in common, and an
+// item that is inside one of them is not inside the other.
+func (p *Pipeline) Finish() error {
+	if !p.recursive {
+		return nil
+	}
+
+	for _, target := range p.targets {
+		if !target.Recursive() {
+			continue
+		}
+
+		if err := p.finishTarget(target); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// finishTarget walks the hierarchy of one target and filters its file.
+func (p *Pipeline) finishTarget(target *Target) error {
+	hierarchy := target.Hierarchy()
+	if hierarchy == nil || target.ItemsPath == "" {
 		return nil
 	}
 
 	// The items are read back from the file, so they have to reach it
 	// first.
-	if err := p.items.Flush(); err != nil {
+	if err := target.Flush(); err != nil {
 		return err
 	}
 
-	reachable := p.hierarchy.Reachable(p.target)
+	reachable := hierarchy.Reachable(target.QID)
 
 	// The items are filtered even when nothing was reached: the pass
 	// kept every item that is located somewhere, and the ones that
 	// are not inside the target have to go.
-	kept, err := p.filterItems(itemsPath, reachable)
+	kept, err := p.filterItems(target.ItemsPath, reachable)
 	if err != nil {
 		return err
 	}
 
 	if p.log != nil {
 		p.log.Info("the administrative hierarchy was walked",
-			"entities", p.hierarchy.Len(),
-			"edges", p.hierarchy.Edges(),
+			"target", target.Name(),
+			"entities", hierarchy.Len(),
+			"edges", hierarchy.Edges(),
 			"reachable", len(reachable),
 			"kept", kept)
 	}
@@ -527,9 +558,16 @@ func (p *Pipeline) speed(stats Stats) float64 {
 // It is called at the end of the run, so that the last batch reaches
 // the files as well.
 func (p *Pipeline) Flush() error {
-	if err := p.items.Flush(); err != nil {
-		return err
+	for _, target := range p.targets {
+		if err := target.Flush(); err != nil {
+			return err
+		}
 	}
+
+	if !p.writeProperties {
+		return nil
+	}
+
 	return p.properties.Flush()
 }
 
@@ -591,7 +629,7 @@ func (p *Pipeline) processLine(line []byte, stats *Stats) error {
 	}
 }
 
-// processItem writes an item when it is linked to the target.
+// processItem writes an item to the file of every target it belongs to.
 //
 // In the recursive mode the rule is wider: an item that is located
 // somewhere is kept as well, whatever it points at. The hierarchy is
@@ -602,34 +640,47 @@ func (p *Pipeline) processLine(line []byte, stats *Stats) error {
 //
 // The items that are not reachable are dropped when the pass is over,
 // so the wider rule does not make the output bigger.
+//
+// An item may belong to several targets: it is written to each of
+// their files, and it is counted once.
 func (p *Pipeline) processItem(raw *rawEntity, stats *Stats) error {
-	keep := LinksToTarget(raw, p.target)
-	if !keep && p.hierarchy != nil {
-		// The target itself is kept, and so is every item that is
-		// located somewhere: the walk needs the whole chain.
-		keep = raw.ID == p.target || hasLocationClaim(raw)
+	matched := false
+
+	for _, target := range p.targets {
+		keep := target.Matches(raw)
+		if !keep && target.Recursive() {
+			// The target itself is kept, and so is every item
+			// that is located somewhere: the walk needs the
+			// whole chain.
+			keep = raw.ID == target.QID || hasLocationClaim(raw)
+		}
+
+		if !keep {
+			continue
+		}
+
+		trimmed := TrimEntity(raw, p.trim)
+
+		if err := target.Write(trimmed); err != nil {
+			return err
+		}
+
+		// The edges of the hierarchy are collected as well, so
+		// that the entities inside the target can be found after
+		// the pass.
+		target.Collect(trimmed)
+
+		matched = true
 	}
 
-	if !keep {
-		// The item was read and it does not point at the target: it
+	if !matched {
+		// The item was read and it does not point at any target: it
 		// is not kept, and it is counted with the lines that were
 		// passed over.
 		stats.Skipped++
 		return nil
 	}
 
-	trimmed := TrimEntity(raw, p.trim)
-
-	// In the recursive mode the edges of the hierarchy are collected
-	// as well, so that the entities inside the target can be found
-	// after the pass.
-	if p.hierarchy != nil {
-		p.hierarchy.Add(trimmed)
-	}
-
-	if err := p.items.Write(trimmed); err != nil {
-		return fmt.Errorf("write the item %s: %w", raw.ID, err)
-	}
 	stats.Items++
 
 	return nil
@@ -649,7 +700,18 @@ func hasLocationClaim(raw *rawEntity) bool {
 // Every property of the dump is kept: the property dictionary is the
 // catalogue the panel reads the names of the properties from, so it
 // holds all of them and not only the ones on the location allowlist.
+//
+// The dictionary is the same for every target, so it is written once
+// per run and not once per target.
 func (p *Pipeline) processProperty(raw *rawEntity, stats *Stats) error {
+	if !p.writeProperties {
+		// The run was asked for the items only. The property is
+		// not written, and it is not counted: it was not
+		// produced.
+		stats.Skipped++
+		return nil
+	}
+
 	trimmed := TrimEntity(raw, p.trim)
 	if err := p.properties.Write(trimmed); err != nil {
 		return fmt.Errorf("write the property %s: %w", raw.ID, err)

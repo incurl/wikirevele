@@ -122,6 +122,7 @@ The shipped migrations are:
 | `1732000000_add_wikidata_import.go` | `wikidata_items` and `wikidata_properties` |
 | `1734000000_add_etl_job_history.go` | `etl_job_history` |
 | `1736000000_drop_artifact_dimensions.go` | Drops the `width` and `height` columns of `artifacts` |
+| `1738000000_widen_etl_history_targets.go` | Widens the target and the item file fields of `etl_job_history` |
 
 A new one would be `1738000000_add_notes.go`.
 
@@ -135,6 +136,52 @@ access is **closed**, because every write goes through the Go services, where th
 frontend expects, and it is why the frontend never needs write access to the API.
 
 `app_settings` gets no rule at all, which is what keeps it out of reach of the HTTP API.
+
+## Several targets, one pass over the dump
+
+The extraction worker can extract **several targets in one run**, and the
+dump is read **once** for all of them.
+
+That is the whole point of the design, and it is a constraint of the
+data rather than a convenience: the full dump is more than a hundred
+gigabytes. A run per target would read it once per target, and a user
+who wants Paris, Shanghai and New York would pay for three passes over
+a hundred gigabytes to get what one pass gives.
+
+So the pipeline holds a **set of targets**, and every entity of the dump
+is checked against every one of them:
+
+```go
+for _, target := range p.targets {
+    keep := target.Matches(raw)
+    ...
+    target.Write(trimmed)
+}
+```
+
+An item that is linked to two targets is written to both files. The
+targets are independent: the item belongs to both, and neither file
+knows about the other.
+
+**The property dictionary is written once.** It is the catalogue of the
+whole dump and it does not depend on the target, so one run over three
+targets writes one dictionary and not three. The two outputs are also
+independent of each other: `--items-only` and `--properties-only` say
+which of the two a run writes.
+
+**The fast path stays a fast path.** The line is skipped when it
+mentions none of the targets, and the search is a byte search over the
+identifiers. The cost of a target is one more search on the lines that
+are skipped, and the lines that are not skipped are read anyway.
+
+**The hierarchies are separate.** In the recursive mode each target
+walks its own administrative hierarchy, and each one filters its own
+file. The hierarchy of Shanghai and the hierarchy of New York have
+nothing in common, and an item that is inside one of them is not inside
+the other.
+
+The run of a single target is the degenerate case of several: there is
+no separate code path to keep honest.
 
 ## The media type is read from the bytes
 
@@ -338,3 +385,7 @@ it must not: the data of a resource goes through `useTable`.
 | How are files served? | `internal/pocketbase/service.go` (`Handler`), `main.go` (`combineHandlers`) |
 | How are secrets stored? | `internal/pocketbase/crypto.go`, `internal/pocketbase/settings.go` |
 | How does the UI get live updates? | `internal/bindings/events.go`, `frontend/src/app/App.tsx` |
+| How is the dump trimmed? | `internal/etl/` |
+| How is a run driven from the interface? | `internal/etlpipeline/`, `internal/etlhistory/` |
+| How is the dataset imported? | `internal/wikidata/importer.go` |
+| How are the cards rendered? | `frontend/src/features/wikidata/` |

@@ -102,7 +102,13 @@ func TestTheCountersReconcile(t *testing.T) {
 	input := strings.Join([]string{match, noMatch, property, damaged}, "\n")
 
 	var items, properties bytes.Buffer
-	pipeline := NewPipeline(Options{Items: &items, Properties: &properties})
+	pipeline := NewPipeline(Options{
+		Targets: []*Target{
+			NewTarget(ParisQID, "", "", NewEntityWriter(&items), false),
+		},
+		Properties:      &properties,
+		WriteProperties: true,
+	})
 
 	stats, err := pipeline.Run(context.Background(), strings.NewReader(input))
 	if err != nil {
@@ -123,7 +129,13 @@ func runOne(t *testing.T, line string) (Stats, string) {
 	t.Helper()
 
 	var items, properties bytes.Buffer
-	pipeline := NewPipeline(Options{Items: &items, Properties: &properties})
+	pipeline := NewPipeline(Options{
+		Targets: []*Target{
+			NewTarget(ParisQID, "", "", NewEntityWriter(&items), false),
+		},
+		Properties:      &properties,
+		WriteProperties: true,
+	})
 
 	stats, err := pipeline.Run(context.Background(), strings.NewReader(line))
 	if err != nil {

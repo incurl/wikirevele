@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/incurl/wikirevele/internal/console"
@@ -457,17 +458,39 @@ func (s *AppService) CancelWikidataImport() {
 type EtlJobOptions struct {
 	// DumpPath is the path of the compressed dump.
 	DumpPath string `json:"dump_path"`
-	// TargetQID is the entity the items are linked to.
-	TargetQID string `json:"target_qid"`
+	// TargetQIDs are the entities the items are linked to.
+	//
+	// The dump is read once and every entity is checked against every
+	// target, so a run over several targets costs one pass and not one
+	// pass per target.
+	TargetQIDs []string `json:"target_qids"`
+	// TargetLabels are the names of the targets, in the same order.
+	//
+	// They are used in the messages and in the name of the file when
+	// the file is derived from the target.
+	TargetLabels []string `json:"target_labels"`
 	// RecursiveP131 tells whether the administrative hierarchy is
 	// walked.
 	RecursiveP131 bool `json:"recursive_p131"`
 	// Languages are the languages that are kept.
 	Languages []string `json:"langs"`
 	// OutItemsPath is the file the items are written to.
+	//
+	// It is the file of the first target when there is one, and the
+	// files of the other targets are derived from it.
 	OutItemsPath string `json:"out_items_path"`
+	// OutItemsPaths holds the file of every target, in the same order
+	// as the targets.
+	//
+	// It overrides OutItemsPath for the targets it names.
+	OutItemsPaths []string `json:"out_items_paths"`
 	// OutPropsPath is the file the properties are written to.
 	OutPropsPath string `json:"out_props_path"`
+	// ItemsOnly tells whether the run writes the items only.
+	ItemsOnly bool `json:"items_only"`
+	// PropertiesOnly tells whether the run writes the property
+	// dictionary only.
+	PropertiesOnly bool `json:"properties_only"`
 	// Overwrite tells whether an existing output file may be
 	// replaced.
 	Overwrite bool `json:"overwrite"`
@@ -499,8 +522,9 @@ type EtlProgress struct {
 	FinishedAt string `json:"finished_at"`
 	// Error is why the run failed. It is empty when it did not.
 	Error string `json:"error"`
-	// ItemFile is the file the items were written to.
-	ItemFile string `json:"item_file"`
+	// ItemFiles are the files the items were written to, one per
+	// target.
+	ItemFiles []string `json:"item_files"`
 	// PropFile is the file the properties were written to.
 	PropFile string `json:"prop_file"`
 }
@@ -514,16 +538,20 @@ type EtlHistoryEntry struct {
 	ID string `json:"id"`
 	// FullCommand is the shell pipeline that was run.
 	FullCommand string `json:"full_command"`
-	// TargetQID is the entity the items were linked to.
-	TargetQID string `json:"target_qid"`
+	// TargetQIDs are the entities the items were linked to.
+	//
+	// A run may extract several entities at once, and the history
+	// records all of them.
+	TargetQIDs []string `json:"target_qids"`
 	// RecursiveP131 says whether the hierarchy was walked.
 	RecursiveP131 bool `json:"recursive_p131"`
 	// Langs are the languages that were kept.
 	Langs string `json:"langs"`
 	// DumpFilePath is the dump that was read.
 	DumpFilePath string `json:"dump_file_path"`
-	// OutItemsPath is the file the items were written to.
-	OutItemsPath string `json:"out_items_path"`
+	// OutItemsPaths are the files the items were written to, one per
+	// target.
+	OutItemsPaths []string `json:"out_items_paths"`
 	// OutPropsPath is the file the properties were written to.
 	OutPropsPath string `json:"out_props_path"`
 	// StartedAt is when the run began.
@@ -543,13 +571,17 @@ type EtlHistoryEntry struct {
 // the pipeline.
 func toEtlJobOptions(opts EtlJobOptions) etlpipeline.JobOptions {
 	return etlpipeline.JobOptions{
-		DumpPath:      opts.DumpPath,
-		TargetQID:     opts.TargetQID,
-		RecursiveP131: opts.RecursiveP131,
-		Languages:     opts.Languages,
-		OutItemsPath:  opts.OutItemsPath,
-		OutPropsPath:  opts.OutPropsPath,
-		Overwrite:     opts.Overwrite,
+		DumpPath:       opts.DumpPath,
+		TargetQIDs:     opts.TargetQIDs,
+		TargetLabels:   opts.TargetLabels,
+		RecursiveP131:  opts.RecursiveP131,
+		Languages:      opts.Languages,
+		OutItemsPath:   opts.OutItemsPath,
+		OutItemsPaths:  opts.OutItemsPaths,
+		OutPropsPath:   opts.OutPropsPath,
+		ItemsOnly:      opts.ItemsOnly,
+		PropertiesOnly: opts.PropertiesOnly,
+		Overwrite:      opts.Overwrite,
 	}
 }
 
@@ -566,21 +598,25 @@ func toEtlProgress(progress etlpipeline.Progress) EtlProgress {
 		StartedAt:           formatEtlTime(progress.StartedAt),
 		FinishedAt:          formatEtlTime(progress.FinishedAt),
 		Error:               progress.Error,
-		ItemFile:            progress.ItemFile,
+		ItemFiles:           progress.ItemFiles,
 		PropFile:            progress.PropFile,
 	}
 }
 
 // toEtlHistoryEntry turns an entry of the history into the view.
+//
+// The targets and the item files are stored as comma-separated lists,
+// and the view carries them as lists: the interface shows one target
+// per entry, and a list is what it can show.
 func toEtlHistoryEntry(entry etlhistory.Entry) EtlHistoryEntry {
 	return EtlHistoryEntry{
 		ID:            entry.ID,
 		FullCommand:   entry.FullCommand,
-		TargetQID:     entry.TargetQID,
+		TargetQIDs:    splitList(entry.TargetQID),
 		RecursiveP131: entry.RecursiveP131,
 		Langs:         entry.Langs,
 		DumpFilePath:  entry.DumpFilePath,
-		OutItemsPath:  entry.OutItemsPath,
+		OutItemsPaths: splitList(entry.OutItemsPath),
 		OutPropsPath:  entry.OutPropsPath,
 		StartedAt:     entry.StartedAt,
 		FinishedAt:    entry.FinishedAt,
@@ -588,6 +624,27 @@ func toEtlHistoryEntry(entry etlhistory.Entry) EtlHistoryEntry {
 		ErrorMessage:  entry.ErrorMessage,
 		Notes:         entry.Notes,
 	}
+}
+
+// splitList splits a comma-separated list.
+//
+// The empty entries are dropped, so that a list that ends with a comma
+// does not carry an empty item.
+func splitList(value string) []string {
+	if value == "" {
+		return []string{}
+	}
+
+	parts := strings.Split(value, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+
+	return out
 }
 
 // formatEtlTime writes a time for the interface.
