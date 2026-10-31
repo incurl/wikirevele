@@ -226,6 +226,7 @@ code {
 /* ---------- The navigator ---------- */
 
 .navigator {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.2308rem;
@@ -244,6 +245,37 @@ code {
  */
 .navigator[data-collapsed="true"] {
   width: 3.4615rem;
+}
+
+/*
+ * The header holds the name of the rail and the control that collapses
+ * it, so that the control is the first thing on the rail and not a
+ * sixth entry under the list.
+ */
+.navigator-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4615rem;
+  min-height: 1.9231rem;
+}
+
+.navigator-title {
+  font-size: 0.6923rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* A collapsed rail has no room for the name, so the toggle takes the width. */
+.navigator[data-collapsed="true"] .navigator-header {
+  justify-content: center;
+}
+
+.navigator[data-collapsed="true"] .navigator-title {
+  display: none;
 }
 
 .navigator-list {
@@ -320,8 +352,14 @@ code {
   white-space: nowrap;
 }
 
+/*
+ * The toggle sits in the header, so it takes the width of its icon and
+ * not the width of the rail: an entry of the list spans the rail, a
+ * control of the rail does not.
+ */
 .navigator-toggle {
-  margin-top: auto;
+  width: auto;
+  padding: 0.3077rem;
   color: var(--text-dim);
 }
 
