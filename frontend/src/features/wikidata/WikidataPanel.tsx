@@ -24,7 +24,6 @@ import { ShowView, ShowViewHeader } from "@/components/refine-ui/views/show-view
 
 import { WikidataItemList } from "./pages/WikidataItemList";
 import { WikidataItemShow } from "./pages/WikidataItemShow";
-import { ImportPanel } from "./components/ImportPanel";
 import { createWikidataProvider, RESOURCE } from "./provider";
 import { wikidataItemResource } from "./resources";
 import { useWikidataDataset } from "./backend";
@@ -101,7 +100,6 @@ export function WikidataPanel({ source: givenSource, showGraph = false }: Wikida
             element={
               <ListView>
                 <ListViewHeader title="Wikidata items" canCreate={false} />
-                <ImportPanel />
                 {loading ? (
                   <p className="text-sm text-muted-foreground">Loading the dataset…</p>
                 ) : (
@@ -115,7 +113,6 @@ export function WikidataPanel({ source: givenSource, showGraph = false }: Wikida
             element={
               <ListView>
                 <ListViewHeader title="Wikidata items" canCreate={false} />
-                <ImportPanel />
                 {loading ? (
                   <p className="text-sm text-muted-foreground">Loading the dataset…</p>
                 ) : (

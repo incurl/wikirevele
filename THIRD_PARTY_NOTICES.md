@@ -1,10 +1,14 @@
 # Third party notices
 
-WikiRevele is built on the following third party projects. Every licence
-below is permissive; **no GPL, AGPL or other copyleft dependency is
-present in the dependency tree**. This is verified automatically by
-`tools/license-audit.py`, which exits non-zero if a copyleft licence is
-introduced.
+WikiRevele is built on the following third party projects.
+
+The project is **GPL-3.0**, because it ships the design tokens of the
+Wikimedia Codex design system, which are GPL-2.0+. That is the only
+copyleft dependency, and it is the reason for the licence of the
+project.
+
+`tools/license-audit.py` verifies this: it exits non-zero when a
+copyleft dependency that is not on its accepted list is introduced.
 
 ## The direct dependencies
 
@@ -14,6 +18,7 @@ tree is listed further down.
 | Project | Why it is here | Licence |
 | --- | --- | --- |
 | [Wails v3](https://github.com/wailsapp/wails) | The desktop shell: the window, the asset server, the service bindings and the event bus | MIT |
+| [Wikimedia Codex](https://doc.wikimedia.org/codex/) | The design system: the tokens of the palette, of the spacing and of the type | GPL-2.0+ |
 | [PocketBase](https://github.com/pocketbase/pocketbase) | The embedded database: the schema, the migrations, the file storage and the REST API | MIT |
 | [dbx](https://github.com/pocketbase/dbx) | The database query builder PocketBase is built on | MIT |
 | [sonic](https://github.com/bytedance/sonic) | The JSON parser of the Wikidata extractor: it decodes the dump far faster than the standard library | Apache-2.0 |
@@ -406,6 +411,10 @@ Before adding a dependency, check its licence:
 python3 tools/license-audit.py
 ```
 
-The audit fails when a GPL, AGPL, LGPL, SSPL, EUPL or OSL dependency
-enters the tree, because a copyleft licence in a distributed desktop
-application is a legal problem for the people who ship it.
+The audit fails when a copyleft dependency that is not on its accepted
+list enters the tree. The accepted list is in the audit itself, with the
+reason every entry is there.
+
+The project is GPL-3.0, so a GPL-2.0+ dependency is compatible with it.
+A dependency under a licence the project does not cover, such as an
+SSPL or an EUPL one, is still a failure.

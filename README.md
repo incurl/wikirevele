@@ -35,7 +35,7 @@ Wails webview
 | Embedded database | `internal/pocketbase/` | Bootstrap, migrations, settings, encrypted secrets |
 | Wails services | `internal/bindings/` | The API the frontend calls |
 | Debug console | `internal/console/` | An in-memory log of the application traffic, shown in the UI |
-| React shell | `frontend/src/` | A working three-column layout with the queue, the console and the settings |
+| React shell | `frontend/src/` | A three-column layout: collapsible tool rails around a workarea for the Wikidata cards |
 | Wikidata ETL worker | `internal/etl/` | The `etl` subcommand: reads a dump from the standard input and writes the two trimmed datasets |
 | ETL pipeline | `internal/etlpipeline/` | Builds the shell pipeline, runs it as a child process, and cancels it |
 | ETL history | `internal/etlhistory/` | The record of the runs, in PocketBase |
@@ -347,5 +347,5 @@ fetches it back through PocketBase's file route.
 
 ## Licence
 
-WikiRevele is MIT licensed. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+WikiRevele is GPL-3.0 licensed. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 for the third party attributions.

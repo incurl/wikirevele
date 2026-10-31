@@ -29,10 +29,12 @@ import { isConsoleShortcut } from '../ui/shortcuts';
 import { ConsolePanel, countErrors } from '../features/console/ConsolePanel';
 import { EtlHistoryPanel } from '../features/etl/EtlHistoryPanel';
 import { EtlPanel } from '../features/etl/EtlPanel';
+import { ToolPanel } from '../features/etl/ToolPanel';
 import { JobQueue } from '../features/queue/JobQueue';
 import { SettingsDialog } from '../features/settings/SettingsDialog';
 import { SubmitPanel } from '../features/submit/SubmitPanel';
 import { WikidataPanel } from '../features/wikidata/WikidataPanel';
+import { ImportPanel } from '../features/wikidata/components/ImportPanel';
 
 interface Toast {
   message: string;
@@ -93,6 +95,14 @@ function App() {
     queryFn: () => api.listConsoleEntries(),
     refetchInterval: 5000,
   });
+
+  // The number of the recorded runs, shown on the header of the
+  // history panel.
+  const historyQuery = useQuery({
+    queryKey: ['etl-history'],
+    queryFn: () => api.listEtlHistory(50),
+  });
+  const historyCount = historyQuery.data?.length ?? 0;
 
   // --- Live updates -------------------------------------------------
 
@@ -261,59 +271,51 @@ function App() {
         </button>
       </header>
 
-      <aside className="app-rail">
-        <EtlPanel onNotify={(message, kind) => notify(message, kind)} />
-        <SubmitPanel
-          disabled={submitMutation.isPending}
-          onSubmit={(prompt, params) => submitMutation.mutate({ prompt, params })}
-        />
+      <aside className="app-rail" aria-label="Tools">
+        <ToolPanel title="Extract" defaultOpen>
+          <EtlPanel onNotify={(message, kind) => notify(message, kind)} />
+        </ToolPanel>
+
+        <ToolPanel title="Import">
+          <ImportPanel />
+        </ToolPanel>
+
+        <ToolPanel title="Submit a job">
+          <SubmitPanel
+            disabled={submitMutation.isPending}
+            onSubmit={(prompt, params) => submitMutation.mutate({ prompt, params })}
+          />
+        </ToolPanel>
       </aside>
 
+      {/*
+        The canvas is the workarea: it holds the items of the dataset
+        and nothing else. The tools are in the rails, so that the
+        canvas can be as wide as the cards need it to be.
+      */}
       <main className="app-canvas">
         <WikidataPanel />
-
-        <section className="panel">
-          <div className="panel-header">
-            <span>Getting started</span>
-          </div>
-          <div className="panel-body">
-            <p className="text-dim">
-              This is the WikiRevele scaffold. It ships a generic job queue, an
-              embedded PocketBase and a React shell. Replace the runner in
-              <code> internal/runner</code> with your own backend, then extend
-              the panels to match.
-            </p>
-            <p className="text-dim">
-              Submit a prompt on the left to see the whole pipeline work: the
-              job is persisted, queued, executed by the runner and pushed back
-              to this window as a Wails event.
-            </p>
-          </div>
-        </section>
       </main>
 
-      <aside className="app-gallery">
-        <EtlHistoryPanel onNotify={(message, kind) => notify(message, kind)} />
+      <aside className="app-gallery" aria-label="Information">
+        <ToolPanel title="Job history" badge={historyCount}>
+          <EtlHistoryPanel onNotify={(message, kind) => notify(message, kind)} />
+        </ToolPanel>
 
-        <section className="panel">
-          <div className="panel-header">
-            <span>Connection</span>
+        <ToolPanel title="Connection">
+          <div className="field">
+            <span className="field-label">API key</span>
+            <span className="text-dim">
+              {settingsQuery.data?.has_api_key
+                ? 'Configured. It is stored encrypted and never sent back to the UI.'
+                : 'Not configured. Add one in Settings.'}
+            </span>
           </div>
-          <div className="panel-body">
-            <div className="field">
-              <span className="field-label">API key</span>
-              <span className="text-dim">
-                {settingsQuery.data?.has_api_key
-                  ? 'Configured. It is stored encrypted and never sent back to the UI.'
-                  : 'Not configured. Add one in Settings.'}
-              </span>
-            </div>
-            <div className="field">
-              <span className="field-label">Base URL</span>
-              <span className="text-dim">{settingsQuery.data?.base_url ?? '—'}</span>
-            </div>
+          <div className="field">
+            <span className="field-label">Base URL</span>
+            <span className="text-dim">{settingsQuery.data?.base_url ?? '—'}</span>
           </div>
-        </section>
+        </ToolPanel>
       </aside>
 
       {consoleOpen && (

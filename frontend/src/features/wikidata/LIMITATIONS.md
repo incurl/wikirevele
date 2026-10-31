@@ -15,9 +15,10 @@ main thread.
 The three ways out, in the order they should be tried:
 
 1. **Let the backend parse it.** The Go side already has a streaming
-   parser (`internal/wikidata`, which uses sonic). A bound method that
-   answers "give me the items that match these filters" solves the
-   problem entirely, and it is the right answer for the full dump.
+   parser (`internal/wikidata`, which reads the records of the
+   database). A bound method that answers "give me the items that match
+   these filters" solves the problem entirely, and it is the right
+   answer for the full dump.
 2. **Parse in a worker.** The parser moves into a Web Worker, so the
    main thread stays free, and the items are handed over in batches.
    This is the answer for a subset that is too big for the IPC but
@@ -73,17 +74,17 @@ Two implementations are planned:
 | Source | Reads | Status |
 | --- | --- | --- |
 | `InMemorySource` | The NDJSON files | **Done** |
-| `PocketBaseSource` | The `film_place_links` and `place_qids` collections | **Not written** |
+| `InMemorySource` over the database | The `wikidata_items` collection | **Done** |
 
 ### What is already in place for it
 
-- The **collections exist**: `film_place_links` and `place_qids`, created
-  by the migration in
-  `internal/pocketbase/migrations/1732000000_add_wikidata.go`.
-- The **extractor writes them**: the Go side fills both collections in
+- The **collections exist**: `wikidata_items` and `wikidata_properties`,
+  created by the migration in
+  `internal/pocketbase/migrations/1732000000_add_wikidata_import.go`.
+- The **importer writes them**: the Go side fills both collections in
   batches, in transactions.
-- The **schema is stable**: the field names are in `provider.ts` and
-  match the columns of the tables.
+- **The bound method answers with the records**: `GetWikidataItems`
+  reads them back, and `backend.ts` turns them into a source.
 - The **provider is source-agnostic**: it never touches a file or a
   database, only the interface.
 
@@ -94,25 +95,14 @@ Two implementations are planned:
   goes through `internal/bindings`. The method would answer "give me
   the items that match these filters", and the panel would call it
   through `frontend/src/bindings/index.ts`.
-- **The full items, not the relationships.** The collections hold the
-  *relationships* (the work, the place, the kind) and the *place
-  list*. They do not hold the claims of an item: the label, the
-  description, the P131, the P136, the coordinates.
+- **The whole dataset is read in one page.** `GetWikidataItems` takes a
+  limit and an offset, and the panel asks for the first page of two
+  hundred items. The panel filters them in memory, so a filter cannot
+  reach an item that is not on the page.
 
-  This is the important gap. The panel shows the claims of an item, so
-  the collections need the items themselves, or a third collection
-  that holds them. The shapes are:
-
-  | Collection | A record would hold |
-  | --- | --- |
-  | `wikidata_items` | The QID, the labels, the description, the claims as JSON |
-  | `film_place_links` | The work, the place, the kind (already there) |
-  | `place_qids` | The place identifier (already there) |
-
-  The claims would be stored as a JSON column, the way the `jobs`
-  collection stores its parameters. That keeps the schema small and
-  leaves the shape of a claim to the application.
-
+  The bound method would have to answer "give me the items that match
+  these filters" instead. That is the right answer for a dataset of a
+  whole city, and it is a change in `internal/wikidata`.
 - **A second pass for the coordinates.** The `P625` values of the
   places are not resolved. The extractor explicitly leaves them out, and
   a separate program is meant to fill them. The panel shows the

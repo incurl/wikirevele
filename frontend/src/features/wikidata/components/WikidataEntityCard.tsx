@@ -9,7 +9,7 @@
  * model, which is built from the dump and is not modified.
  */
 
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { Link } from "react-router";
 
@@ -17,6 +17,7 @@ import type { EntityView } from "../view";
 import { entityUrl } from "../view";
 import { ValueRenderer } from "../fields/ValueRenderer";
 import { EntityGraph } from "./EntityGraph";
+import { isMultiSelect } from "../selection";
 
 /**
  * The props of the card.
@@ -32,6 +33,10 @@ export interface WikidataEntityCardProps {
   readonly onToggle?: (expanded: boolean) => void;
   /** Whether the graph of the neighbourhood is shown. */
   readonly showGraph?: boolean;
+  /** Whether the item is selected in the workarea. */
+  readonly selected?: boolean;
+  /** Called when the user selects the item, or clears the selection. */
+  readonly onSelect?: (id: string, additive: boolean) => void;
 }
 
 /**
@@ -43,6 +48,8 @@ export function WikidataEntityCard({
   defaultExpanded = false,
   onToggle,
   showGraph = false,
+  selected = false,
+  onSelect,
 }: WikidataEntityCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
@@ -52,8 +59,24 @@ export function WikidataEntityCard({
     onToggle?.(next);
   };
 
+  // The click on the card selects the item. The modifier turns it
+  // into a toggle of one item among many.
+  const select = (event: MouseEvent) => {
+    if (!onSelect) {
+      return;
+    }
+    event.preventDefault();
+    onSelect(item.id, isMultiSelect(event));
+  };
+
   return (
-    <article className="flex flex-col rounded-lg border border-border bg-card text-card-foreground shadow-sm">
+    <article
+      className={`flex flex-col rounded-lg border bg-card text-card-foreground shadow-sm transition-colors ${
+        selected ? 'border-primary ring-1 ring-primary' : 'border-border'
+      }`}
+      data-selected={selected ? 'true' : 'false'}
+      onClick={select}
+    >
       <div className="flex gap-3 p-3">
         <ItemThumbnail item={item} />
 

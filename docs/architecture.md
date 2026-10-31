@@ -215,6 +215,40 @@ introduced a licence obligation, and made the "replace the parts you do not need
 The scaffold therefore ships a plain stylesheet with a small set of CSS custom properties, and three runtime dependencies. The
 layout is a grid; the panels are plain `div`s. Extending it means adding a panel and a class, not learning a component API.
 
+## The design system is the Wikimedia Codex one
+
+The palette, the spacing and the type come from the [Wikimedia Codex design system](https://doc.wikimedia.org/codex/), through
+the `@wikimedia/codex-design-tokens` package. The tokens are imported as they are, and the names this interface uses are mapped
+onto them in `frontend/src/styles.css`.
+
+Two things are worth knowing about the tokens:
+
+- **Their sense is the opposite of what the names suggest.** `base` is the colour of the surface the text stands on, and
+  `inverted` is the colour of the text itself. In the dark theme the base is a pale grey and the text is near black.
+- **They are the reason the project is GPL-3.0.** The package is GPL-2.0+, so the whole application is under the copyleft licence.
+  `tools/license-audit.py` holds the list of the copyleft dependencies that are accepted, and the reason for each.
+
+The shadcn components of the panel use the HSL channels of the same tokens. They were declared in the Tailwind configuration
+and never defined, so every component that used them fell back to nothing; they are defined now.
+
+## The layout is a workarea between two rails
+
+The window is three columns: a left rail of tools, a centre workarea and a right rail of information.
+
+| Rail | What it holds |
+| --- | --- |
+| Left | The extraction, the import and the submission of a job |
+| Centre | The workarea: the grid of the Wikidata cards |
+| Right | The history of the runs and the state of the connection |
+
+The panels of the rails are collapsible (`ToolPanel`), and they keep their state when they are closed, so that a form the user
+filled in is still there when they open it again. The workarea is the only thing that is always visible: it is where the data
+is, and the rails give their room back to it.
+
+The selection of the cards is kept out of the components, in `features/wikidata/selection.ts`: a click selects one item, a click
+with the command or the control key toggles it among many, and the bar above the grid selects the whole page or clears the
+selection.
+
 ## What the build tooling does
 
 - `build/config.yml` is the Wails project configuration: the product name, the bundle identifier, the version and the dev-mode

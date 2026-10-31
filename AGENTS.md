@@ -53,7 +53,7 @@ does. Do not special-case a domain into `internal/jobs`.
 Wails webview
 ├── React 19 + Vite + TanStack Query
 │   ├── app/           the shell: layout, data fetching, the event wiring
-│   ├── features/      one panel per concern (submit, queue, console, settings)
+│   ├── features/      one panel per concern (submit, queue, console, settings, etl, wikidata)
 │   ├── bindings/      typed wrappers over the generated bindings
 │   └── ui/            pure helpers (zoom, shortcuts), unit tested
 │
@@ -93,6 +93,9 @@ PocketBase and never processes a dump itself. See [`docs/wikidata.md`](docs/wiki
   from a bound method.
 - The debug console shows a **fingerprint** of a secret, never the secret itself (`console.Fingerprint`).
 - Ask before adding heavy dependencies, changing auth/token behaviour, or altering the Docker/release workflows.
+- The project is **GPL-3.0**, because it ships the design tokens of the Wikimedia Codex design system, which are GPL-2.0+.
+  A copyleft dependency that is not on the accepted list of `tools/license-audit.py` is a failure; one that is on it must have
+  its reason written next to it.
 
 ## Commands
 
@@ -131,7 +134,7 @@ PATH="$HOME/go/bin:$PATH" wails3 task package        # the platform packages
 PATH="$HOME/go/bin:$PATH" wails3 task --list-all     # every task, with names
 
 # Audits
-python3 tools/license-audit.py                 # fails on a copyleft dependency
+python3 tools/license-audit.py                 # fails on an unaccepted copyleft dependency
 ```
 
 ### Task names are namespaced
@@ -159,6 +162,8 @@ tasks) or `wails3 task --list-all` (everything). To inspect without running, use
 | A panel or the layout | `frontend/src/features/`, `frontend/src/app/App.tsx`, `frontend/src/styles.css` | `npm run typecheck && npm test` |
 | The product name, identifier or version | `build/config.yml`, `build/*/Taskfile.yml`, `internal/bindings/service.go` (`AppName`, `AppVersion`), `frontend/package.json`, `Taskfile.yml` (`APP_NAME`) | `wails3 build` |
 | A dependency | `frontend/package.json` or `go.mod` | `python3 tools/license-audit.py` |
+| The layout, the rails or the workarea | `frontend/src/app/App.tsx`, `frontend/src/features/etl/ToolPanel.tsx` | `npm run typecheck && npm test` |
+| The palette or the type | `frontend/src/styles.css` | `npm run build` |
 
 ## Frontend Conventions
 
