@@ -162,7 +162,7 @@ tasks) or `wails3 task --list-all` (everything). To inspect without running, use
 | A panel or the layout | `frontend/src/features/`, `frontend/src/app/App.tsx`, `frontend/src/styles.css` | `npm run typecheck && npm test` |
 | The product name, identifier or version | `build/config.yml`, `build/*/Taskfile.yml`, `internal/bindings/service.go` (`AppName`, `AppVersion`), `frontend/package.json`, `Taskfile.yml` (`APP_NAME`) | `wails3 build` |
 | A dependency | `frontend/package.json` or `go.mod` | `python3 tools/license-audit.py` |
-| The layout, the rails or the workarea | `frontend/src/app/App.tsx`, `frontend/src/features/etl/ToolPanel.tsx` | `npm run typecheck && npm test` |
+| The layout, the navigator or a scope | `frontend/src/app/App.tsx`, `frontend/src/app/Navigator.tsx`, `frontend/src/app/scopes.ts` | `npm run typecheck && npm test` |
 | The palette or the type | `frontend/src/styles.css` | `npm run build` |
 
 ## Frontend Conventions

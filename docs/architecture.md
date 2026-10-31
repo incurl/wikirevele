@@ -231,19 +231,37 @@ Two things are worth knowing about the tokens:
 The shadcn components of the panel use the HSL channels of the same tokens. They were declared in the Tailwind configuration
 and never defined, so every component that used them fell back to nothing; they are defined now.
 
-## The layout is a workarea between two rails
+## The window is a navigator, a view and the jobs
 
-The window is three columns: a left rail of tools, a centre workarea and a right rail of information.
+The window is three columns, and only the middle one holds data:
 
-| Rail | What it holds |
+| Column | What it is |
 | --- | --- |
-| Left | The extraction, the import and the submission of a job |
-| Centre | The workarea: the grid of the Wikidata cards |
-| Right | The history of the runs and the state of the connection |
+| Left | The **navigator**: the list of the scopes. It holds no pane of its own |
+| Centre | The **view**: the scope the navigator selected, at the full width the rails leave it |
+| Right | The **jobs**: the queue, and nothing else |
 
-The panels of the rails are collapsible (`ToolPanel`), and they keep their state when they are closed, so that a form the user
-filled in is still there when they open it again. The workarea is the only thing that is always visible: it is where the data
-is, and the rails give their room back to it.
+A scope is a pane the view can show. The list is `frontend/src/app/scopes.ts`, and it is the one
+place that names them: the navigator, the view and the accessible names all read it.
+
+| Scope | What it shows |
+| --- | --- |
+| Workarea | The gallery of the Wikidata cards |
+| Extract | The parameters of an extraction, and the command it produces |
+| Import | The import of a dataset into the database |
+| Submit | The submission of a job to the queue |
+| History | The runs of the extraction |
+
+**Nothing is stacked.** A tool used to be a panel folded into a rail beside the others; it is now the
+whole view, so a form has the width of the window. There is one scope at a time, and the navigator says
+which.
+
+Both rails collapse, and both give their room to the view: the navigator keeps a strip of icons, and the
+jobs rail collapses to a strip that still shows how many jobs are moving. The view is the only column
+that grows, which is the point: it is where the data is.
+
+A route of the workarea switches the view to it. A link to an item changes the path, and the page it
+addresses has to be shown, so `scopeOfPath` maps the path of a route to the scope that owns it.
 
 The selection of the cards is kept out of the components, in `features/wikidata/selection.ts`: a click selects one item, a click
 with the command or the control key toggles it among many, and the bar above the grid selects the whole page or clears the

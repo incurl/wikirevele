@@ -1,9 +1,9 @@
 /*
  * WikiRevele styles.
  *
- * A dark, dense layout: a left rail of tools, a centre workarea and a
- * right rail of information. The panels of the rails are collapsible,
- * so that the workarea can take the room they give back.
+ * A dark, dense layout: a navigator on the left, the view in the
+ * centre and the jobs rail on the right. Both rails collapse, so that
+ * the view can take the room they give back.
  *
  * Every size is expressed in rem, so that the whole interface follows
  * the zoom factor, which scales the root font size.
@@ -182,9 +182,16 @@ code {
 
 /* ---------- Layout ---------- */
 
+/*
+ * The window is a navigator, a view and the jobs rail.
+ *
+ * The two side columns are sized by their content, so that a collapsed
+ * rail gives its room back to the view: the view is the only column
+ * that grows.
+ */
 .app {
   display: grid;
-  grid-template-columns: 22rem 1fr 18rem;
+  grid-template-columns: auto 1fr auto;
   grid-template-rows: 3.6923rem 1fr auto;
   height: 100%;
 }
@@ -216,30 +223,192 @@ code {
   flex: 1;
 }
 
-.app-rail,
-.app-gallery {
-  overflow-y: auto;
-  background: var(--bg-raised);
-  padding: 0.9231rem;
+/* ---------- The navigator ---------- */
+
+.navigator {
   display: flex;
   flex-direction: column;
-  gap: 1.0769rem;
-}
-
-.app-rail {
+  gap: 0.2308rem;
+  width: 15rem;
+  padding: 0.6154rem;
+  background: var(--bg-raised);
   border-right: 0.0769rem solid var(--border);
+  overflow-y: auto;
+  transition: width 120ms ease;
 }
 
-.app-gallery {
-  border-left: 0.0769rem solid var(--border);
+/*
+ * A collapsed navigator keeps a strip wide enough for its icons, so
+ * that it is still a navigator: the names are hidden, and every entry
+ * keeps its title for the tooltip and its text for the screen reader.
+ */
+.navigator[data-collapsed="true"] {
+  width: 3.4615rem;
 }
 
-.app-canvas {
+.navigator-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2308rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navigator-item,
+.navigator-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6154rem;
+  width: 100%;
+  padding: 0.5385rem 0.6154rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  text-align: left;
+}
+
+.navigator-item:hover,
+.navigator-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.navigator-item[data-active="true"] {
+  background: var(--bg-input);
+  color: var(--text);
+  box-shadow: inset 0.1538rem 0 0 var(--accent);
+}
+
+.navigator-icon {
+  flex: 0 0 auto;
+  width: 1.0769rem;
+  height: 1.0769rem;
+}
+
+.navigator-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.navigator-name {
+  font-size: 0.8462rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.navigator-hint {
+  color: var(--text-dim);
+  font-size: 0.6923rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The names are hidden, not removed: the text is still read out. */
+.navigator[data-collapsed="true"] .navigator-label {
+  position: absolute;
+  width: 0.0769rem;
+  height: 0.0769rem;
+  margin: -0.0769rem;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.navigator-toggle {
+  margin-top: auto;
+  color: var(--text-dim);
+}
+
+/* ---------- The view ---------- */
+
+.app-view {
+  min-width: 0;
+  min-height: 0;
   overflow: auto;
   padding: 1.2308rem;
   display: flex;
   flex-direction: column;
   gap: 1.0769rem;
+}
+
+/* ---------- The jobs rail ---------- */
+
+.app-jobs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7692rem;
+  width: 20rem;
+  padding: 0.9231rem;
+  background: var(--bg-raised);
+  border-left: 0.0769rem solid var(--border);
+  overflow-y: auto;
+  transition: width 120ms ease;
+}
+
+.app-jobs-collapsed {
+  width: 3.4615rem;
+  padding: 0.6154rem;
+}
+
+.jobs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4615rem;
+}
+
+.jobs-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4615rem;
+  font-size: 0.8462rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.jobs-count {
+  padding: 0.0769rem 0.3846rem;
+  border-radius: 0.3077rem;
+  background: var(--bg-input);
+  color: var(--text-dim);
+  font-size: 0.6923rem;
+  font-weight: 400;
+}
+
+.jobs-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3077rem;
+  padding: 0.3846rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-dim);
+}
+
+.jobs-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+/*
+ * The collapsed rail is a strip, so its label is written along it.
+ */
+.jobs-collapsed-label {
+  font-size: 0.6923rem;
+  writing-mode: vertical-rl;
+}
+
+.app-jobs-collapsed .jobs-toggle {
+  flex-direction: column;
+  height: 100%;
 }
 
 /* ---------- Panels ---------- */
@@ -352,40 +521,42 @@ code {
 
 /* ---------- Queue ---------- */
 
+/*
+ * The queue lives in the jobs rail, so it is a column and not a row of
+ * chips: the jobs stack, and the list scrolls with the rail.
+ */
 .queue {
   display: flex;
-  align-items: center;
-  gap: 0.7692rem;
+  flex-direction: column;
+  gap: 0.4615rem;
   min-width: 0;
 }
 
 .queue-summary {
   color: var(--text-muted);
   font-size: 0.7692rem;
-  white-space: nowrap;
 }
 
 .queue-list {
   list-style: none;
   display: flex;
-  align-items: center;
-  gap: 0.4615rem;
+  flex-direction: column;
+  gap: 0.3077rem;
   margin: 0;
   padding: 0;
   min-width: 0;
-  overflow: hidden;
 }
 
 .queue-item {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.3846rem;
-  padding: 0.2308rem 0.4615rem;
+  padding: 0.4615rem;
   background: var(--bg-input);
   border: 0.0769rem solid var(--border);
   border-radius: var(--radius);
   font-size: 0.7692rem;
-  white-space: nowrap;
 }
 
 .queue-dot {
@@ -413,9 +584,11 @@ code {
 }
 
 .queue-title {
-  max-width: 11rem;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .queue-elapsed {
@@ -867,86 +1040,4 @@ code {
 .checkbox input {
   width: auto;
   margin: 0;
-}
-
-/* ---------- Tool panels ---------- */
-
-/*
- * The rails hold the tools, and the canvas is the workarea. A tool
- * panel gives its room back when it is closed, so that the canvas can
- * grow.
- *
- * Every size is in rem, so that the whole interface follows the zoom
- * factor.
- */
-.tool-panel {
-  border: 0.0769rem solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg);
-  overflow: hidden;
-}
-
-.tool-panel-header {
-  display: flex;
-  align-items: center;
-  gap: 0.4615rem;
-  width: 100%;
-  padding: 0.6154rem 0.7692rem;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-family: var(--font);
-  font-size: 0.8462rem;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-
-.tool-panel-header:hover {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
-.tool-panel-chevron {
-  display: inline-flex;
-  color: var(--text-dim);
-}
-
-.tool-panel-title {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tool-panel-badge {
-  padding: 0.0769rem 0.3846rem;
-  border-radius: 0.3077rem;
-  background: var(--bg-input);
-  color: var(--text-dim);
-  font-size: 0.6923rem;
-  font-weight: 400;
-}
-
-.tool-panel-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7692rem;
-  padding: 0 0.7692rem 0.7692rem;
-}
-
-.tool-panel-hint {
-  margin: 0;
-  color: var(--text-dim);
-  font-size: 0.7692rem;
-}
-
-/*
- * A panel inside a tool panel has no frame of its own: the frame is
- * the tool panel.
- */
-.tool-panel-body > .panel {
-  border: none;
-  background: none;
 }

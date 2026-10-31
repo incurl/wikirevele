@@ -143,13 +143,7 @@ export function ArtifactPanel({ jobId, onRemoved }: ArtifactPanelProps) {
 ```tsx
 import { ArtifactPanel } from '../features/artifacts/ArtifactPanel';
 // ...
-<aside className="app-rail">
-  <SubmitPanel ... />
-  <ArtifactPanel
-    jobId={selectedJobId}
-    onRemoved={(message) => notify(message)}
-  />
-</aside>
+{scope === 'workarea' && <ArtifactPanel jobId={selectedJobId} onRemoved={(message) => notify(message)} />}
 ```
 
 The shell already provides the query client, the toast helper and the event subscriptions. A panel should not create its own

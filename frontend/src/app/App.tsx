@@ -1,8 +1,8 @@
 /**
  * The WikiRevele application shell.
  *
- * The layout is a left control rail, a centre canvas and a right
- * sidebar, with the job queue in the header area.
+ * The layout is a navigator on the left, the view it switches in the
+ * centre, and the job queue in a rail on the right.
  *
  * The debug console sits at the bottom of the window. It is hidden
  * until it is asked for, with Ctrl+Shift+I or with the button in the
@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Events } from '@wailsio/runtime';
 
@@ -29,12 +30,20 @@ import { isConsoleShortcut } from '../ui/shortcuts';
 import { ConsolePanel, countErrors } from '../features/console/ConsolePanel';
 import { EtlHistoryPanel } from '../features/etl/EtlHistoryPanel';
 import { EtlPanel } from '../features/etl/EtlPanel';
-import { ToolPanel } from '../features/etl/ToolPanel';
-import { JobQueue } from '../features/queue/JobQueue';
+import { JobsRail } from './JobsRail';
+import { Navigator } from './Navigator';
+import { DEFAULT_SCOPE, SCOPES, scopeOfPath, type ScopeId } from './scopes';
 import { SettingsDialog } from '../features/settings/SettingsDialog';
 import { SubmitPanel } from '../features/submit/SubmitPanel';
 import { WikidataPanel } from '../features/wikidata/WikidataPanel';
 import { ImportPanel } from '../features/wikidata/components/ImportPanel';
+
+/**
+ * The accessible name of each view.
+ */
+const SCOPE_LABELS: Record<ScopeId, string> = Object.fromEntries(
+  SCOPES.map((scope) => [scope.id, scope.label]),
+) as Record<ScopeId, string>;
 
 interface Toast {
   message: string;
@@ -50,6 +59,12 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+
+  // The scope the view shows, and whether the two rails are giving
+  // their room back to it.
+  const [scope, setScope] = useState<ScopeId>(DEFAULT_SCOPE);
+  const [navigatorCollapsed, setNavigatorCollapsed] = useState(false);
+  const [jobsCollapsed, setJobsCollapsed] = useState(false);
 
   // The toast timer is kept so that a second toast replaces the first
   // instead of being dismissed by the first one's timer.
@@ -96,13 +111,6 @@ function App() {
     refetchInterval: 5000,
   });
 
-  // The number of the recorded runs, shown on the header of the
-  // history panel.
-  const historyQuery = useQuery({
-    queryKey: ['etl-history'],
-    queryFn: () => api.listEtlHistory(50),
-  });
-  const historyCount = historyQuery.data?.length ?? 0;
 
   // --- Live updates -------------------------------------------------
 
@@ -232,6 +240,19 @@ function App() {
     }
   }, [settingsQuery.data]);
 
+  // A route of the workarea switches the view to it. A link to an item
+  // changes the path, and the page it addresses has to be shown: a
+  // navigator that stayed on another scope would address a page that is
+  // not on screen.
+  const location = useLocation();
+
+  useEffect(() => {
+    const wanted = scopeOfPath(location.pathname);
+    if (wanted) {
+      setScope(wanted);
+    }
+  }, [location.pathname]);
+
   const jobs = jobsQuery.data ?? [];
   const entries = consoleQuery.data ?? [];
   const consoleErrors = countErrors(entries);
@@ -245,13 +266,6 @@ function App() {
         </span>
 
         <span className="app-header-spacer" />
-
-        <JobQueue
-          jobs={jobs}
-          onCancel={(jobId) => cancelMutation.mutate(jobId)}
-          onRetry={(jobId) => retryMutation.mutate(jobId)}
-          onDelete={(jobId) => deleteMutation.mutate(jobId)}
-        />
 
         <button
           type="button"
@@ -271,52 +285,39 @@ function App() {
         </button>
       </header>
 
-      <aside className="app-rail" aria-label="Tools">
-        <ToolPanel title="Extract" defaultOpen>
-          <EtlPanel onNotify={(message, kind) => notify(message, kind)} />
-        </ToolPanel>
+      {/*
+        The navigator switches the view. It holds no pane of its own:
+        every scope is rendered in the view, so each of them has the
+        whole width of the window.
+      */}
+      <Navigator
+        active={scope}
+        onSelect={setScope}
+        collapsed={navigatorCollapsed}
+        onToggle={() => setNavigatorCollapsed((value) => !value)}
+      />
 
-        <ToolPanel title="Import">
-          <ImportPanel />
-        </ToolPanel>
-
-        <ToolPanel title="Submit a job">
+      <main className="app-view" aria-label={SCOPE_LABELS[scope]}>
+        {scope === 'workarea' && <WikidataPanel />}
+        {scope === 'extract' && <EtlPanel onNotify={(message, kind) => notify(message, kind)} />}
+        {scope === 'import' && <ImportPanel />}
+        {scope === 'submit' && (
           <SubmitPanel
             disabled={submitMutation.isPending}
             onSubmit={(prompt, params) => submitMutation.mutate({ prompt, params })}
           />
-        </ToolPanel>
-      </aside>
-
-      {/*
-        The canvas is the workarea: it holds the items of the dataset
-        and nothing else. The tools are in the rails, so that the
-        canvas can be as wide as the cards need it to be.
-      */}
-      <main className="app-canvas">
-        <WikidataPanel />
+        )}
+        {scope === 'history' && <EtlHistoryPanel onNotify={(message, kind) => notify(message, kind)} />}
       </main>
 
-      <aside className="app-gallery" aria-label="Information">
-        <ToolPanel title="Job history" badge={historyCount}>
-          <EtlHistoryPanel onNotify={(message, kind) => notify(message, kind)} />
-        </ToolPanel>
-
-        <ToolPanel title="Connection">
-          <div className="field">
-            <span className="field-label">API key</span>
-            <span className="text-dim">
-              {settingsQuery.data?.has_api_key
-                ? 'Configured. It is stored encrypted and never sent back to the UI.'
-                : 'Not configured. Add one in Settings.'}
-            </span>
-          </div>
-          <div className="field">
-            <span className="field-label">Base URL</span>
-            <span className="text-dim">{settingsQuery.data?.base_url ?? '—'}</span>
-          </div>
-        </ToolPanel>
-      </aside>
+      <JobsRail
+        jobs={jobs}
+        collapsed={jobsCollapsed}
+        onToggle={() => setJobsCollapsed((value) => !value)}
+        onCancel={(jobId) => cancelMutation.mutate(jobId)}
+        onRetry={(jobId) => retryMutation.mutate(jobId)}
+        onDelete={(jobId) => deleteMutation.mutate(jobId)}
+      />
 
       {consoleOpen && (
         <ConsolePanel
