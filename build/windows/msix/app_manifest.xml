@@ -14,7 +14,7 @@
     ProcessorArchitecture="x64" />
   
   <Properties>
-    <DisplayName>Wikirevele</DisplayName>
+    <DisplayName>WikiRevele</DisplayName>
     <PublisherDisplayName>incurl</PublisherDisplayName>
     <Description>A Wails v3 desktop application</Description>
     <Logo>Assets\StoreLogo.png</Logo>
@@ -31,7 +31,7 @@
   <Applications>
     <Application Id="com.incurl.wikirevele" Executable="wikirevele" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="Wikirevele"
+        DisplayName="WikiRevele"
         Description="A Wails v3 desktop application"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"

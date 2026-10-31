@@ -1,7 +1,7 @@
 ---
 name: new-application
 description: >
-  Start a new desktop application from the Wikirevele template: copy the
+  Start a new desktop application from the WikiRevele template: copy the
   repository, rename every identifier, write the first runner, and verify
   that the whole pipeline works end to end before any feature work starts.
   Use when the user asks to start a new project from this template, to
@@ -38,9 +38,9 @@ git remote set-url origin https://github.com/incurl/<name>.git
 Rename the identifiers. The blunt version, followed by a careful review:
 
 ```bash
-grep -rl 'wikirevele\|Wikirevele' --exclude-dir=.git --exclude-dir=node_modules \
+grep -rl 'wikirevele\|WikiRevele' --exclude-dir=.git --exclude-dir=node_modules \
   --exclude-dir=bindings --exclude-dir=dist . \
-  | xargs sed -i 's/wikirevele/<name>/g; s/Wikirevele/<Name>/g'
+  | xargs sed -i 's/wikirevele/<name>/g; s/WikiRevele/<Name>/g'
 ```
 
 Then review the diff. The bundle identifier becomes `com.incurl.<name>`, which is usually right, but a real product may want a

@@ -1,4 +1,4 @@
-// Package bindings exposes the Wikirevele backend to the frontend as
+// Package bindings exposes the WikiRevele backend to the frontend as
 // Wails services.
 //
 // These are the primary communication channel between the React UI and
@@ -599,7 +599,7 @@ func claimsOf(claims map[string]json.RawMessage) map[string]any {
 }
 
 // AppName is the name of the application.
-const AppName = "Wikirevele"
+const AppName = "WikiRevele"
 
 // AppVersion is the version of the application.
 const AppVersion = "0.1.0"

@@ -1,7 +1,7 @@
 ---
 name: release
 description: >
-  Cut a release of a Wikirevele application: pick the version, verify the
+  Cut a release of a WikiRevele application: pick the version, verify the
   candidate commit, build the binaries and the packages, publish the GitHub
   release, and verify what was published. Use when the user asks to ship, cut
   a release, tag a version, or publish the desktop application. Do not use for

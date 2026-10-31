@@ -1,4 +1,4 @@
-# Wikirevele
+# WikiRevele
 
 A desktop application scaffold: **Wails v3** + **PocketBase** + **Vite** +
 **React**, wired together and ready to be built on.
@@ -347,5 +347,5 @@ fetches it back through PocketBase's file route.
 
 ## Licence
 
-Wikirevele is MIT licensed. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+WikiRevele is MIT licensed. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 for the third party attributions.

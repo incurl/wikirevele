@@ -7,7 +7,7 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// Setting keys used by Wikirevele.
+// Setting keys used by WikiRevele.
 //
 // The scaffold defines a generic set. Applications are expected to add
 // their own keys, keeping the "app.<name>" convention.

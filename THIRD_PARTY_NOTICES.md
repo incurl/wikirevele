@@ -1,6 +1,6 @@
 # Third party notices
 
-Wikirevele is built on the following third party projects. Every licence
+WikiRevele is built on the following third party projects. Every licence
 below is permissive; **no GPL, AGPL or other copyleft dependency is
 present in the dependency tree**. This is verified automatically by
 `tools/license-audit.py`, which exits non-zero if a copyleft licence is
@@ -8,7 +8,7 @@ introduced.
 
 ## The direct dependencies
 
-These are the projects Wikirevele imports directly. The full transitive
+These are the projects WikiRevele imports directly. The full transitive
 tree is listed further down.
 
 | Project | Why it is here | Licence |

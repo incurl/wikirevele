@@ -5,7 +5,7 @@ repo. If a fact here conflicts with source files or CI config, trust the source 
 
 ## Project Snapshot
 
-Wikirevele is a **scaffold**: a desktop application template built on Wails v3, an embedded PocketBase and a React frontend. It
+WikiRevele is a **scaffold**: a desktop application template built on Wails v3, an embedded PocketBase and a React frontend. It
 is not a product. The plumbing every application needs is done; the domain is yours to write.
 
 - Backend: Go 1.26 (toolchain `go1.26.10` pinned in `go.mod`), Wails v3.0.0, PocketBase v0.39.11. The binary is `main.go` at

@@ -11,7 +11,7 @@
     !define INFO_COMPANYNAME "incurl"
 !endif
 !ifndef INFO_PRODUCTNAME
-    !define INFO_PRODUCTNAME "Wikirevele"
+    !define INFO_PRODUCTNAME "WikiRevele"
 !endif
 !ifndef INFO_PRODUCTVERSION
     !define INFO_PRODUCTVERSION "0.1.0"

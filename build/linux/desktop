@@ -1,6 +1,6 @@
 [Desktop Entry]
 Version=1.0
-Name=Wikirevele
+Name=WikiRevele
 Comment=A Wails v3 desktop application
 # The Exec line includes %u to pass the URL to the application
 Exec=/usr/local/bin/wikirevele %u

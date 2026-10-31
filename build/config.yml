@@ -6,7 +6,7 @@ version: '3'
 # This information is used to generate the build assets.
 info:
   companyName: "incurl" # The name of the company
-  productName: "Wikirevele" # The name of the application
+  productName: "WikiRevele" # The name of the application
   productIdentifier: "com.incurl.wikirevele" # The unique product identifier
   description: "A Wails v3 + PocketBase + React desktop application for the Wikidata dataset" # The application description
   copyright: "(c) 2026, incurl" # Copyright text

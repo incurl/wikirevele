@@ -1,6 +1,6 @@
 # Porting the template to a new application
 
-The checklist for taking Wikirevele to a new project. Do the steps in order: the later ones assume the earlier ones.
+The checklist for taking WikiRevele to a new project. Do the steps in order: the later ones assume the earlier ones.
 
 The fastest way to start is to copy the repository and rename it. Copying keeps the build tooling, the CI and the tests, which
 are the parts that take the longest to get right.
@@ -39,9 +39,9 @@ A blunt but effective approach for the bulk of it:
 
 ```bash
 # In the copied repository, before the first build
-grep -rl 'wikirevele\|Wikirevele' --exclude-dir=.git --exclude-dir=node_modules \
+grep -rl 'wikirevele\|WikiRevele' --exclude-dir=.git --exclude-dir=node_modules \
   --exclude-dir=bindings --exclude-dir=dist . \
-  | xargs sed -i 's/wikirevele/<name>/g; s/Wikirevele/<Name>/g'
+  | xargs sed -i 's/wikirevele/<name>/g; s/WikiRevele/<Name>/g'
 ```
 
 Then review the diff: `com.incurl.wikirevele` becomes `com.incurl.<name>`, which is usually what you want, but the bundle

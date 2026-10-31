@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file is the Claude Code entry point for Wikirevele. It points at the canonical guides rather than repeating them, so that
+This file is the Claude Code entry point for WikiRevele. It points at the canonical guides rather than repeating them, so that
 there is one source of truth.
 
 ## Read these, in this order

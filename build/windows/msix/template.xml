@@ -10,11 +10,11 @@
     <Installer
         Path="wikirevele"
         Arguments=""
-        InstallLocation="C:\Program Files\incurl\Wikirevele">
+        InstallLocation="C:\Program Files\incurl\WikiRevele">
     </Installer>
     <PackageInformation
-        PackageName="Wikirevele"
-        PackageDisplayName="Wikirevele"
+        PackageName="WikiRevele"
+        PackageDisplayName="WikiRevele"
         PublisherName="CN=incurl"
         PublisherDisplayName="incurl"
         Version="0.1.0.0"
@@ -27,7 +27,7 @@
             <Application
                 Id="com.incurl.wikirevele"
                 Description="A Wails v3 desktop application"
-                DisplayName="Wikirevele"
+                DisplayName="WikiRevele"
                 ExecutableName="wikirevele"
                 EntryPoint="Windows.FullTrustApplication">
                 
@@ -41,7 +41,7 @@
         </Dependencies>
         <Properties>
             <Framework>false</Framework>
-            <DisplayName>Wikirevele</DisplayName>
+            <DisplayName>WikiRevele</DisplayName>
             <PublisherDisplayName>incurl</PublisherDisplayName>
             <Description>A Wails v3 desktop application</Description>
             <Logo>Assets\AppIcon.png</Logo>

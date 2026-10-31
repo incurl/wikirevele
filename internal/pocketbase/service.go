@@ -1,5 +1,5 @@
 // Package pocketbase embeds PocketBase as a Go library and owns the
-// Wikirevele persistence layer.
+// WikiRevele persistence layer.
 //
 // PocketBase is never run as a standalone process. The application
 // bootstraps the library, runs the Go migrations in the migrations
@@ -22,7 +22,7 @@ import (
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 
-	// Importing the migrations package registers the Wikirevele schema
+	// Importing the migrations package registers the WikiRevele schema
 	// migrations with PocketBase's own migration list.
 	_ "github.com/incurl/wikirevele/internal/pocketbase/migrations"
 )
@@ -46,7 +46,7 @@ func NewService(dataDir string) *Service {
 	return &Service{dataDir: dataDir}
 }
 
-// DefaultDataDir returns the default location of the Wikirevele data
+// DefaultDataDir returns the default location of the WikiRevele data
 // directory.
 func DefaultDataDir() string {
 	if exe, err := os.Executable(); err == nil {
@@ -61,7 +61,7 @@ func (s *Service) App() *pocketbase.PocketBase { return s.app }
 // DataDir returns the directory holding the database and the files.
 func (s *Service) DataDir() string { return s.dataDir }
 
-// Bootstrap initialises PocketBase and applies the Wikirevele migrations.
+// Bootstrap initialises PocketBase and applies the WikiRevele migrations.
 //
 // PocketBase is used purely as a library: Start() is never called, so
 // no HTTP server is bound and no separate process is required.
@@ -78,7 +78,7 @@ func (s *Service) Bootstrap() error {
 		return fmt.Errorf("bootstrap pocketbase: %w", err)
 	}
 
-	// Apply the Go migrations that create the Wikirevele schema.
+	// Apply the Go migrations that create the WikiRevele schema.
 	if err := s.app.RunAppMigrations(); err != nil {
 		return fmt.Errorf("run migrations: %w", err)
 	}
@@ -90,7 +90,7 @@ func (s *Service) Bootstrap() error {
 //
 // The returned handler serves PocketBase's REST API and, crucially, its
 // native file route (/api/files/<collection>/<record>/<filename>).
-// Wikirevele mounts it on the Wails asset server so that stored files are
+// WikiRevele mounts it on the Wails asset server so that stored files are
 // served from the same origin as the UI, without opening a second port.
 func (s *Service) Handler() (http.Handler, error) {
 	if s.app == nil {

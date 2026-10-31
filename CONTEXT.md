@@ -1,4 +1,4 @@
-# Wikirevele vocabulary
+# WikiRevele vocabulary
 
 The terms below are shared between the Go backend, the React frontend and the documentation. The same terms appear in code as
 collection names (`jobs`, `artifacts`, `app_settings`) and as JSON field names.

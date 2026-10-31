@@ -17,7 +17,7 @@ import (
 // secrets before they are written to the app_settings collection.
 //
 // PocketBase provides no generic secret-encryption facility, so
-// Wikirevele stores an encrypted envelope in the record. The key never
+// WikiRevele stores an encrypted envelope in the record. The key never
 // leaves the machine: it is generated on first run and kept in a 0600
 // file inside the data directory.
 type Cipher struct {

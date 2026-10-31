@@ -1,5 +1,5 @@
 ---
-description: Wikirevele — Wails v3 + PocketBase + React desktop application template
+description: WikiRevele — Wails v3 + PocketBase + React desktop application template
 globs:
   - "**/*.go"
   - "**/*.ts"
@@ -7,7 +7,7 @@ globs:
 alwaysApply: true
 ---
 
-# Wikirevele
+# WikiRevele
 
 A desktop application template: Wails v3, an embedded PocketBase, a React frontend. The domain belongs to the application; the
 scaffolding is shared.

@@ -1,4 +1,4 @@
-// Wikirevele is a desktop application scaffold.
+// WikiRevele is a desktop application scaffold.
 //
 // It wires together Wails v3, an embedded PocketBase and a React
 // frontend, and it provides a generic job queue that an application

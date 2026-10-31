@@ -1,6 +1,6 @@
 # Architecture
 
-Why Wikirevele is shaped the way it is. Each section states the decision and the reason, so that a later change does not undo it
+Why WikiRevele is shaped the way it is. Each section states the decision and the reason, so that a later change does not undo it
 by accident.
 
 ## The stack
