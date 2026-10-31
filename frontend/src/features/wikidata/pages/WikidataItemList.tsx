@@ -9,48 +9,36 @@
  *   the page.
  * - **TanStack Table owns the shape of the rows.** It is given the
  *   records Refine returned and nothing else: it sorts and pages
- *   nothing, because the server already did.
- * - **TanStack Virtual owns what is on screen.** It renders the visual
- *   rows of the grid that are in the viewport, so a page of a thousand
- *   cards costs the same as a page of twenty.
+ *   nothing, because the server already did. What it does own is the
+ *   identity of the rows, which is the QID of the item, so that a card
+ *   keeps its place when the page changes.
+ * - **TanStack Virtual owns what is on screen.** It renders the cards
+ *   that are in the viewport, so a page of a thousand cards costs the
+ *   same as a page of twenty. The grid is made of the library's
+ *   lanes, so the library lays the cards out and measures them.
  *
- * The cards themselves are the ones of the panel, and they are not
- * aware of any of it.
+ * The page holds the query and the selection. The drawing is the work
+ * of `GalleryGrid`, and the cards themselves are the ones of the
+ * panel, and they are not aware of any of it.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTable } from "@refinedev/core";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import {
-  createColumnHelper,
-  getCoreRowModel,
-  useReactTable,
-  type Row,
-} from "@tanstack/react-table";
 import { Loader2 } from "lucide-react";
 
-import { WikidataEntityCard } from "../components/WikidataEntityCard";
+import { GalleryGrid } from "../components/GalleryGrid";
 import { FilterBar } from "../components/FilterBar";
 import { RESOURCE } from "../provider";
-import { viewOf } from "../provider";
 import type { WikidataRecord } from "../provider";
-import { placesOf } from "../backend";
 import {
   EMPTY_SELECTION,
   clear,
-  isSelected,
   selectAll,
   summarize,
   toggle,
   type Selection,
 } from "../selection";
-import {
-  GALLERY_COLUMNS,
-  GALLERY_ROW_HEIGHT,
-  pageSummary,
-  rowCount,
-  rowItems,
-} from "../gallery";
+import { pageSummary } from "../gallery";
 
 /**
  * The props of the list page.
@@ -64,22 +52,6 @@ export interface WikidataItemListProps {
  * The number of cards in a page.
  */
 const PAGE_SIZE = 24;
-
-/**
- * The column of the gallery.
- *
- * There is one, and it holds an item: the gallery renders the cards of
- * the items, so a column of the table is a whole card. The table is
- * here for the row model, not for a set of columns.
- */
-const columnHelper = createColumnHelper<WikidataRecord>();
-
-const columns = [
-  columnHelper.display({
-    id: "card",
-    cell: (info) => String(info.row.original.id),
-  }),
-];
 
 /**
  * The list page.
@@ -102,48 +74,16 @@ export function WikidataItemList({ showGraph = false }: WikidataItemListProps) {
     pagination: { currentPage: 1, pageSize: PAGE_SIZE },
   });
 
-  const records = useMemo(() => result.data ?? [], [result.data]);
+  // The table wants an array it may reorder, and the server already
+  // sent the order it wants.
+  const records = useMemo<WikidataRecord[]>(() => [...(result.data ?? [])], [result.data]);
   const total = result.total ?? 0;
 
-  // The table is given the records and renders nothing by itself: the
-  // server has already filtered, sorted and paged them.
-  const table = useReactTable({
-    data: records,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    manualSorting: true,
-    manualFiltering: true,
-  });
+  const visibleIds = useMemo(() => records.map((record) => String(record.id)), [records]);
 
-  const rows = table.getRowModel().rows;
-
-  // The virtualiser scrolls the visual rows of the grid, not the items.
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const virtualizer = useVirtualizer({
-    count: rowCount(rows.length, GALLERY_COLUMNS),
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => GALLERY_ROW_HEIGHT,
-    overscan: 3,
-  });
-
-  /**
-   * Selects an item, and clears the rest unless a modifier is held.
-   */
   const onSelect = useCallback((id: string, additive: boolean) => {
-    setSelection((current) => {
-      if (additive) {
-        return toggle(current, id);
-      }
-      if (current.ids.size === 1 && isSelected(current, id)) {
-        return clear();
-      }
-      return { ids: new Set([id]) };
-    });
+    setSelection((current) => (additive ? toggle(current, id) : { ids: new Set([id]) }));
   }, []);
-
-  const visibleIds = useMemo(() => rows.map((row) => String(row.original.id)), [rows]);
 
   if (tableQuery.isLoading) {
     return (
@@ -167,18 +107,19 @@ export function WikidataItemList({ showGraph = false }: WikidataItemListProps) {
     <div className="flex h-full min-h-0 flex-col gap-3">
       <FilterBar filters={filters} onChange={setFilters} total={total} />
 
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2 text-xs">
         <button
           type="button"
           className="rounded-md border border-border px-2 py-1 hover:bg-accent hover:text-foreground"
           onClick={() =>
             setSelection((current) =>
-              current.ids.size === visibleIds.length ? clear() : selectAll(current, visibleIds),
+              current.ids.size > 0
+                ? clear()
+                : selectAll(current, visibleIds),
             )
           }
-          disabled={visibleIds.length === 0}
         >
-          {selection.ids.size === visibleIds.length && visibleIds.length > 0
+          {selection.ids.size > 0
             ? "Select none"
             : "Select the page"}
         </button>
@@ -198,36 +139,17 @@ export function WikidataItemList({ showGraph = false }: WikidataItemListProps) {
         <span className="ml-auto">{pageSummary(currentPage, PAGE_SIZE, total, visibleIds.length)}</span>
       </div>
 
-      {rows.length === 0 ? (
+      {records.length === 0 ? (
         <p className="rounded-lg border border-border bg-card p-6 text-center text-sm text-muted-foreground">
           No item matches the filters.
         </p>
       ) : (
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
-          <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
-            {virtualizer.getVirtualItems().map((virtualRow) => (
-              <div
-                key={virtualRow.key}
-                className="absolute inset-x-0 top-0 grid gap-2"
-                style={{
-                  height: virtualRow.size,
-                  transform: `translateY(${virtualRow.start}px)`,
-                  gridTemplateColumns: `repeat(${GALLERY_COLUMNS}, minmax(0, 1fr))`,
-                }}
-              >
-                {rowItems(rows, virtualRow.index, GALLERY_COLUMNS).map((row) => (
-                  <GalleryCard
-                    key={row.id}
-                    row={row}
-                    showGraph={showGraph}
-                    selected={isSelected(selection, String(row.original.id))}
-                    onSelect={onSelect}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
+        <GalleryGrid
+          records={records}
+          showGraph={showGraph}
+          selectedIds={selection.ids}
+          onSelect={onSelect}
+        />
       )}
 
       {pageCount > 1 ? (
@@ -254,35 +176,5 @@ export function WikidataItemList({ showGraph = false }: WikidataItemListProps) {
         </div>
       ) : null}
     </div>
-  );
-}
-
-/**
- * One card of the gallery, built from a row of the table.
- */
-function GalleryCard({
-  row,
-  showGraph,
-  selected,
-  onSelect,
-}: {
-  readonly row: Row<WikidataRecord>;
-  readonly showGraph: boolean;
-  readonly selected: boolean;
-  readonly onSelect: (id: string, additive: boolean) => void;
-}) {
-  const view = viewOf(row.original);
-  if (!view) {
-    return null;
-  }
-
-  return (
-    <WikidataEntityCard
-      item={view}
-      places={placesOf(view)}
-      showGraph={showGraph}
-      selected={selected}
-      onSelect={onSelect}
-    />
   );
 }

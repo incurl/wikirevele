@@ -351,9 +351,27 @@ are divided between three libraries, and each does one of them:
 The division is not cosmetic. Refine sends the filters, the sorters and
 the page to Go, which queries PocketBase and answers with one page and
 a count; TanStack Table is given that page and sorts and pages nothing,
-because the server already did; and the virtualiser renders the visual
-rows of the grid that are in the viewport, so a page of a thousand
-cards costs the same as a page of twenty.
+because the server already did; and the virtualiser renders the cards
+of the grid that are in the viewport, so a page of a thousand cards
+costs the same as a page of twenty.
+
+Two details of that division are easy to undo by accident:
+
+- **The table owns the identity of the rows.** `getRowId` is the QID of
+  the item, so a row is the item and not its position in the page. A
+  card that moves between two renders keeps its place in the DOM
+  instead of being mounted again.
+- **The grid is made of the virtualiser's lanes.** A lane is one
+  column of the grid and an item is one card, so the library lays the
+  cards out and measures them. The estimate is therefore the height of
+  **one card** and not the height of a row of cards, and a card that
+  opens its detail panel, or that shows its graph, is measured and
+  given the room it needs.
+
+The wiring is in two modules next to the panel, `features/wikidata/gallery/table.ts` and
+`features/wikidata/gallery/virtual.ts`, and the drawing is in `features/wikidata/components/GalleryGrid.tsx`.
+The page itself, `features/wikidata/pages/WikidataItemList.tsx`, holds the query and the selection and draws
+nothing: the grid is a plain function of its props, so it can be rendered on its own.
 
 `useTable` is from `@refinedev/core`. `@refinedev/react-table` is in the
 dependency list and is **not** used: its `useTable` wraps TanStack
