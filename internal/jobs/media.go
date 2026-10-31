@@ -2,10 +2,6 @@ package jobs
 
 import (
 	"bytes"
-	"fmt"
-	"image"
-	_ "image/gif"
-	_ "image/jpeg"
 )
 
 // MediaType describes a detected media format.
@@ -19,9 +15,12 @@ type MediaType struct {
 // DetectMediaType identifies the format of the given bytes.
 //
 // The format is read from the bytes rather than from the file name, so
-// it stays correct no matter what the file is called. Storing a JPEG
-// under a ".png" name produces a file that some tools reject and all of
-// them misidentify.
+// it stays correct no matter what the file is called. Storing a file
+// under a name that does not match its content produces a file that
+// some tools reject and all of them misidentify.
+//
+// The detection is about the bytes that were stored, not about what
+// they mean: the queue does not know what kind of work produced them.
 func DetectMediaType(data []byte) MediaType {
 	switch {
 	case len(data) >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF:
@@ -44,22 +43,4 @@ func DetectMediaType(data []byte) MediaType {
 // MimeTypeOf returns the MIME type of the given bytes.
 func MimeTypeOf(data []byte) string {
 	return DetectMediaType(data).Mime
-}
-
-// ImageSize describes the pixel dimensions of an image.
-type ImageSize struct {
-	Width  int `json:"width"`
-	Height int `json:"height"`
-}
-
-// DimensionsOf returns the pixel dimensions of the given image bytes.
-//
-// It fails for data that is not a decodable image, which is the normal
-// case for a non-image artifact.
-func DimensionsOf(data []byte) (ImageSize, error) {
-	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
-	if err != nil {
-		return ImageSize{}, fmt.Errorf("decode image: %w", err)
-	}
-	return ImageSize{Width: cfg.Width, Height: cfg.Height}, nil
 }

@@ -8,7 +8,7 @@ import (
 )
 
 // TestExampleReturnsThePrompt verifies that the example runner echoes
-// the prompt back, which is what makes the scaffold work out of the box.
+// the prompt back, which is what makes the queue work out of the box.
 func TestExampleReturnsThePrompt(t *testing.T) {
 	runner := NewExample(nil, nil)
 

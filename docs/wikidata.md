@@ -7,7 +7,8 @@ latest-all.json.bz2
         │
         │  the ETL worker (the "etl" subcommand)
         ▼
-paris-wikidata-subset.ndjson      the items linked to the target
+paris-wikidata-subset.ndjson      the items of the first target
+shanghai-wikidata-subset.ndjson   the items of the second target
 wikidata-properties.ndjson        the property dictionary
         │
         │  the desktop application (internal/wikidata)
@@ -37,7 +38,7 @@ imports what the worker wrote.
 | Only the application imports the result | `internal/wikidata/importer.go` |
 | The application never decompresses anything | there is no bzip2 import in the application |
 | The worker never decompresses anything | it reads the standard input, never a bz2 file |
-| The worker never opens the database | it writes two files and nothing else |
+| The worker never opens the database | it writes the files and nothing else |
 | Both sides share one shape | `internal/wikidata/schema` |
 
 ## Stage 1: the ETL worker
@@ -71,21 +72,25 @@ The command makes no network request and reads no configuration file.
 
 ### What it keeps
 
-An item is kept when **one of its mainsnak statements** satisfies every
-rule:
+An item is kept for a target when **one of its mainsnak statements**
+satisfies every rule:
 
 - the property is on the allowlist:
   `P131, P915, P1448, P1071, P1552, P291, P159, P551, P1037, P19, P20`,
 - `snaktype` is `value`,
 - `datatype` is `wikibase-item`,
-- the value is the entity `Q90` (Paris).
+- the value is the target.
 
 The qualifiers of the statement are **not** read: a statement that
-points at Paris with a qualifier that contradicts it is still a
-statement that points at Paris.
+points at the target with a qualifier that contradicts it is still a
+statement that points at the target.
+
+An item that satisfies the rule for two targets is kept for both, and
+it is written to both files.
 
 Every property of the dump is kept: the property dictionary is the
-catalogue the panel reads the names of the properties from.
+catalogue the panel reads the names of the properties from. It is the
+same for every target, so it is written once per run.
 
 The entities that are neither items nor properties — the lexemes and
 the media information records — are skipped.
@@ -123,11 +128,16 @@ scanned=100000 items=812 properties=1244 skipped=37 malformed=0
 
 ## Stage 2: the import
 
-The application imports the two files into PocketBase. It never reads a
+The application imports the files into PocketBase. It never reads a
 dump.
 
+A run over several targets wrote one file of items per target, and
+every one of them is imported: the items of the targets are merged into
+the same collection, and the identifier of an item is its key, so an
+item that belongs to two targets is imported once.
+
 The collections are created by the migration in
-`internal/pocketbase/migrations/1733000000_add_wikidata_import.go`:
+`internal/pocketbase/migrations/1732000000_add_wikidata_import.go`:
 
 | Collection | Key | Fields |
 | --- | --- | --- |

@@ -213,8 +213,10 @@ On failure, read the log with `gh run view <id> --log-failed` and classify it:
 Give the version, the tag, the SHA, the URL of the release, the list of assets, the verification results, anything that failed
 and was retried, and anything that was not done.
 
-## Notes for a template
+## Notes
 
-This repository is a **template**, not a shipped product. It has no release workflow, because the application that is built
-from it brings its own. When you port the template, add a `.github/workflows/release.yml` that builds the platforms your users
-need, and use this skill for the process around it.
+This repository has no release workflow yet. When one is needed, add a `.github/workflows/release.yml` that builds the
+platforms your users need, and use this skill for the process around it.
+
+The version lives in `build/config.yml` (`info.version`), in `internal/bindings/service.go` (`AppVersion`) and in
+`frontend/package.json`. Keep them in step: the binary, the window title and the packages must agree.

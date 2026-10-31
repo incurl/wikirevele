@@ -2,7 +2,7 @@
  * The submit panel.
  *
  * Collects the prompt and the free-form parameters of a job. The
- * scaffold models no domain: the parameters are a plain key/value
+ * queue models no domain: the parameters are a plain key/value
  * list, which the runner receives as it is.
  */
 

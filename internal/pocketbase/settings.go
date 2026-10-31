@@ -9,8 +9,8 @@ import (
 
 // Setting keys used by WikiRevele.
 //
-// The scaffold defines a generic set. Applications are expected to add
-// their own keys, keeping the "app.<name>" convention.
+// The set is a generic one. New keys are expected to keep the
+// "app.<name>" convention.
 const (
 	// SettingUI holds the user interface preferences.
 	SettingUI = "ui"

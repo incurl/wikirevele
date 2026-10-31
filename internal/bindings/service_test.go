@@ -95,7 +95,7 @@ func TestRetryJobKeepsTheOriginalOutputs(t *testing.T) {
 	}
 	waitForStatus(t, manager, original.ID, jobs.StatusCompleted, jobs.StatusFailed)
 
-	artifact, err := manager.StoreArtifact(original.ID, jobs.ArtifactKindOutput, []byte("image bytes"), "result.png", nil)
+	artifact, err := manager.StoreArtifact(original.ID, jobs.ArtifactKindOutput, []byte("the produced bytes"), "result.txt", nil)
 	if err != nil {
 		t.Fatalf("store artifact: %v", err)
 	}
@@ -144,7 +144,7 @@ func TestRetryJobReusesTheInputs(t *testing.T) {
 	service, manager := newTestService(t, okRunner())
 
 	// An input artifact that belongs to no job yet.
-	input, err := manager.StoreArtifact("", jobs.ArtifactKindInput, []byte("input bytes"), "reference.png", nil)
+	input, err := manager.StoreArtifact("", jobs.ArtifactKindInput, []byte("the input bytes"), "reference.txt", nil)
 	if err != nil {
 		t.Fatalf("store artifact: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestRetryJobReusesTheInputs(t *testing.T) {
 func TestSubmitJobKeepsTheInputs(t *testing.T) {
 	service, manager := newTestService(t, okRunner())
 
-	input, err := manager.StoreArtifact("", jobs.ArtifactKindInput, []byte("input bytes"), "reference.png", nil)
+	input, err := manager.StoreArtifact("", jobs.ArtifactKindInput, []byte("the input bytes"), "reference.txt", nil)
 	if err != nil {
 		t.Fatalf("store artifact: %v", err)
 	}

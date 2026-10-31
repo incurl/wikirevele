@@ -10,7 +10,7 @@ import (
 
 // Artifact is the frontend-facing view of a stored file.
 //
-// The scaffold models no specific kind of file: an artifact is whatever
+// The queue models no specific kind of file: an artifact is whatever
 // the application stored, with the metadata the application recorded.
 type Artifact struct {
 	// ID is the PocketBase record id.
@@ -27,9 +27,6 @@ type Artifact struct {
 	Mime string `json:"mime"`
 	// Bytes is the file size.
 	Bytes int `json:"bytes"`
-	// Width and Height are the pixel dimensions, for images.
-	Width  int `json:"width"`
-	Height int `json:"height"`
 	// Meta is the application-specific metadata.
 	Meta map[string]any `json:"meta"`
 	// Created is the ISO-8601 creation timestamp.
@@ -115,8 +112,6 @@ func (m *Manager) toArtifact(record *core.Record) Artifact {
 		Name:    record.GetString("name"),
 		Mime:    record.GetString("mime"),
 		Bytes:   record.GetInt("bytes"),
-		Width:   record.GetInt("width"),
-		Height:  record.GetInt("height"),
 		Meta:    map[string]any{},
 		Created: record.GetString("created"),
 	}

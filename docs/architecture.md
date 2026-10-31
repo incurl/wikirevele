@@ -3,6 +3,10 @@
 Why WikiRevele is shaped the way it is. Each section states the decision and the reason, so that a later change does not undo it
 by accident.
 
+WikiRevele is a desktop application for exploring a Wikidata dataset. A dump is trimmed down to the entities linked to a
+place, imported into an embedded database, and browsed as a gallery of cards. The document starts at the edges of that
+pipeline and works inwards: the shell, the database, the queue, the dataset, the interface.
+
 ## The stack
 
 | Layer | Choice | Why |
@@ -10,7 +14,7 @@ by accident.
 | Shell | Wails v3 | A native window around a webview. The Go process owns the window and the backend; the webview owns the UI. |
 | Backend | Go | One binary, one process, no sidecar. |
 | Storage | PocketBase, as a library | Gives a real database, migrations, file storage and access rules without running a server. |
-| UI | React 19 + Vite + TanStack Query | The usual stack. The scaffold deliberately adds nothing else. |
+| UI | React 19 + Vite + TanStack Query + Refine | The usual stack. Refine answers the queries and the views; the panel owns the rendering. |
 
 ## PocketBase runs as a library, not as a process
 
@@ -35,8 +39,8 @@ loading and nothing else fails loudly.
 
 ## The job queue is generic on purpose
 
-`internal/jobs` knows about jobs, artifacts and their lifecycle. It knows nothing about images, models, prompts or any other
-domain. A job is a title, a prompt, a `map[string]any` of params and an arbitrary result.
+`internal/jobs` knows about jobs, artifacts and their lifecycle. It knows nothing about the dataset, about the models of a
+remote API, or about any other domain. A job is a title, a prompt, a `map[string]any` of params and an arbitrary result.
 
 The work is delegated to a `jobs.Runner`:
 
@@ -46,9 +50,9 @@ type Runner interface {
 }
 ```
 
-This is the single most important design decision in the template. It means the queue, the persistence, the cancellation, the
-events and the history are written once and never touched again, no matter what the application does. An application that
-generates images, transcribes audio or scrapes a website changes `internal/runner/` and nothing else.
+This is the single most important design decision in the queue. It means the queue, the persistence, the cancellation, the
+events and the history are written once and never touched again, no matter what the runner does. A runner that queries a
+remote API, transcribes audio or scrapes a website changes `internal/runner/` and nothing else.
 
 **Why a `map[string]any` for the params and the result, rather than a typed struct?** A typed struct would have to be
 generified into `map[string]any` at the boundary anyway, and the generation would lose the field names. Keeping it loose means
@@ -62,7 +66,7 @@ domain.
   burst of submissions from flooding a rate-limited backend.
 - **Cancellation is a context.** Each running job gets a `context.Context` whose cancel function is registered in
   `Manager.cancels`. `Cancel` calls it and marks the record `cancelled`. A runner that ignores the context will keep running
-  until it finishes — the scaffold cannot force it to stop, so a runner **must** honour `ctx`.
+  until it finishes — the queue cannot force it to stop, so a runner **must** honour `ctx`.
 - **A cancelled job is not a failed job.** When a runner returns an error after the context was cancelled, the manager checks
   `ctx.Err()` and keeps the `cancelled` status. The user asked for it; it is not an error.
 - **Deletion requires rest.** `DeleteJob` refuses while a job is `pending` or `running`, because a running job would write to
@@ -106,12 +110,25 @@ package discoverable.
 - the name must be **stable** once applied, because PocketBase records it and will not re-run it under a different name;
 - to make a migration idempotent, check whether the field already exists before adding it.
 
-The shipped migrations are `1730000000_init.go`. A new one would be `1732000000_add_notes.go`.
+**An applied migration is never edited.** The init migration `1730000000_init.go` still creates the `width` and `height`
+columns of `artifacts`, because it was applied before they were removed. The migration that drops them is
+`1736000000_drop_artifact_dimensions.go`. This is why the history of the schema is readable in the file names.
+
+The shipped migrations are:
+
+| File | What it creates |
+| --- | --- |
+| `1730000000_init.go` | `jobs`, `artifacts` and `app_settings` |
+| `1732000000_add_wikidata_import.go` | `wikidata_items` and `wikidata_properties` |
+| `1734000000_add_etl_job_history.go` | `etl_job_history` |
+| `1736000000_drop_artifact_dimensions.go` | Drops the `width` and `height` columns of `artifacts` |
+
+A new one would be `1738000000_add_notes.go`.
 
 ## The access rules are the write gate
 
-The scaffold sets `ListRule` and `ViewRule` to `""` (public read) on `jobs` and `artifacts`, and leaves `app_settings` without
-any rule.
+The application sets `ListRule` and `ViewRule` to `""` (public read) on `jobs` and `artifacts`, and leaves `app_settings`
+without any rule.
 
 Read access is public because the application is a single-user desktop app: the local database is the user's own data. Write
 access is **closed**, because every write goes through the Go services, where the invariants live. That is the shape the
@@ -119,20 +136,22 @@ frontend expects, and it is why the frontend never needs write access to the API
 
 `app_settings` gets no rule at all, which is what keeps it out of reach of the HTTP API.
 
-## The queue knows about images, on purpose
+## The media type is read from the bytes
 
-`internal/jobs/media.go` decodes image headers, and the `artifacts` collection carries `width` and `height` columns. That is
-image-specific knowledge inside a package whose headline claim is that the queue is generic.
+`internal/jobs/media.go` sniffs the format of a stored file from its content, not from its name, and the `artifacts`
+collection carries the detected `mime` and the size.
 
-It is a deliberate trade-off, and this is the honest statement of it: **images are the common case, and detecting the format
-from the bytes is the thing that is easy to get wrong.** Storing a JPEG under a `.png` name produces a file that every tool
-misidentifies. The scaffold does that detection once, correctly, rather than leaving it to each application.
+This is the one piece of knowledge the queue has about the files it holds, and it is deliberately narrow: **the detection is
+about the bytes that were stored, not about what they mean.** Storing a JPEG under a `.png` name produces a file that some
+tools reject and all of them misidentify, and reading the format from the bytes gets that right once, in one place.
 
-The cost is that a queue storing audio, PDFs or JSON still runs `DimensionsOf`, still fails the decode, and still carries two
-columns it never fills. The decode failure is ignored, so nothing breaks; the columns stay zero.
+What the queue deliberately does *not* do is interpret the file. It does not decode it, does not measure it, and does not
+know what produced it. A file that carries dimensions, or a record count, or anything else specific to its domain, keeps
+that in the `artifacts.meta` JSON field, where the domain that put it there can define its own shape.
 
-If an application is not image-based, the clean fix is to move the dimensions into the `artifacts.meta` JSON field, which
-needs a migration. Until then, this is the trade-off, and it is not a bug.
+The pixel dimensions were removed for exactly this reason: they were image-specific columns in a package whose headline
+claim is that the queue is generic, and nothing ever read them. The migration `1736000000_drop_artifact_dimensions.go` is
+what drops them from an existing database.
 
 ## The listing is batched
 
@@ -207,13 +226,17 @@ Three details are load-bearing, and they all come from the webview rather than f
 - **A drag that ends in a click fires the row handler.** `hasTextSelection()` is checked before toggling the detail view, so
   selecting a message to read it does not collapse the panel.
 
-## Why there is no UI kit
+## The components are ours, not a dependency
 
-The source project this was generalised from vendored a large component library. It worked, but it made the template heavy,
-introduced a licence obligation, and made the "replace the parts you do not need" story much harder.
+The interface is built on **shadcn/ui**, which is not a package: the components are copied into the repository as source, under
+`frontend/src/components/ui/`. The same is true of the Refine views, under `frontend/src/components/refine-ui/`.
 
-The scaffold therefore ships a plain stylesheet with a small set of CSS custom properties, and three runtime dependencies. The
-layout is a grid; the panels are plain `div`s. Extending it means adding a panel and a class, not learning a component API.
+That is deliberate. A vendored component library that is *ours* can be edited, cannot drift under a version bump, and does not
+add a licence obligation. The layout of the application is a grid over plain `div`s and the CSS custom properties of the
+design tokens, so extending it means adding a panel and a class, not learning a component API.
+
+Tailwind carries the styling of the shadcn components, and the components read the HSL channels of the same tokens as the
+rest of the interface.
 
 ## The design system is the Wikimedia Codex one
 

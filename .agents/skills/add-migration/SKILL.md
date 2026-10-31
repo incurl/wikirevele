@@ -199,7 +199,7 @@ go test -race ./internal/...
 go run ./tools/e2e-check
 ```
 
-**Test the migration against a fresh database and an existing one.** The scaffold's test helper creates a throwaway database
+**Test the migration against a fresh database and an existing one.** The test helper creates a throwaway database
 per test, so a migration that only works on a fresh database will pass the tests and fail in the field.
 
 ```go

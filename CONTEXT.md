@@ -13,18 +13,17 @@ what the work actually is.
 _Avoid_: Task, Request, Generation, Operation
 
 **Runner**:
-The implementation that executes a job. It is the extension point of the scaffold: an application replaces the shipped echo
+The implementation that executes a job. It is the extension point of the queue: the application replaces the shipped echo
 runner with its own. A runner receives a `jobs.Job` and a `context.Context`, and returns a `jobs.Result` or an error.
 _Avoid_: Worker, Executor, Handler, Processor
 
 **Echo runner**:
 The reference runner in `internal/runner/echo.go`. It waits briefly, honours the context, and returns the prompt back. It exists
-so the scaffold runs with no external service and so the queue can be exercised end to end.
+so that the queue can be exercised end to end without any external service.
 _Avoid_: Mock runner, Test runner, Default runner
 
 **Reconcile**:
-The startup pass that resolves the jobs a crash left behind, marking them failed or re-enqueueing them. The scaffold does not
-do this yet: a job left in `running` is never resumed and cannot be deleted.
+The startup pass that resolves the jobs a crash left behind, marking them failed or re-enqueueing them.
 _Avoid_: Recover, Replay, Resume
 
 **Retry**:
@@ -39,7 +38,7 @@ _Avoid_: State, Phase, Stage
 
 **Artifact**:
 A stored file, either one the user supplied (`input`) or one the job produced (`output`). It carries the bytes, the detected
-media type and the dimensions when the content is an image.
+media type and the size.
 _Avoid_: Asset, File, Upload, Attachment, Resource
 
 **Artifact kind**:
@@ -52,11 +51,11 @@ The short label of a job, shown in the queue. It defaults to the first line of t
 _Avoid_: Name, Label, Summary, Subject
 
 **Job prompt**:
-The free-form instruction of a job. The scaffold does not interpret it; the runner does.
+The free-form instruction of a job. The queue does not interpret it; the runner does.
 _Avoid_: Query, Message, Input, Description
 
 **Job params**:
-The arbitrary `map[string]any` of parameters of a job. The scaffold stores them verbatim and hands them to the runner.
+The arbitrary `map[string]any` of parameters of a job. The queue stores them verbatim and hands them to the runner.
 _Avoid_: Options, Settings, Config, Arguments, Payload
 
 **Job result**:
@@ -102,8 +101,8 @@ A Go type bound to the frontend, exposed through `application.NewService(...)` i
 _Avoid_: Controller, Handler, API
 
 **Event**:
-A Wails event that pushes a backend change to the frontend. Two exist: `job:updated` and `console:entry`. Both are registered
-in `main.go` with `application.RegisterEvent`, which is what makes the generator emit a typed TS API for them.
+A Wails event that pushes a backend change to the frontend. Three exist: `job:updated`, `console:entry` and `etl:progress`. All
+are registered in `main.go` with `application.RegisterEvent`, which is what makes the generator emit a typed TS API for them.
 _Avoid_: Message, Signal, Subscription
 
 **Data directory**:

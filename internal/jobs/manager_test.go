@@ -218,7 +218,7 @@ func TestDeleteJobRemovesIt(t *testing.T) {
 func TestArtifactStorage(t *testing.T) {
 	m := newTestManager(t)
 
-	// A real 1x1 PNG.
+	// A small PNG, so that the stored media type is a known one.
 	png := []byte{
 		0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
 		0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
@@ -237,9 +237,6 @@ func TestArtifactStorage(t *testing.T) {
 	}
 	if artifact.Mime != "image/png" {
 		t.Errorf("mime = %q, want image/png", artifact.Mime)
-	}
-	if artifact.Width != 1 || artifact.Height != 1 {
-		t.Errorf("dimensions = %dx%d, want 1x1", artifact.Width, artifact.Height)
 	}
 	if artifact.URL == "" {
 		t.Error("the artifact has no URL")

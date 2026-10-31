@@ -35,7 +35,7 @@ func init() {
 func createWikiReveleSchema(app core.App) error {
 	// --- jobs -------------------------------------------------------
 	// The generic job table. The application decides what a job means;
-	// the scaffold only owns the lifecycle, the status and the
+	// the queue only owns the lifecycle, the status and the
 	// parameters.
 	jobs := core.NewBaseCollection("jobs")
 	jobs.Fields.Add(

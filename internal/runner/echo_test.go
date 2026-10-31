@@ -10,7 +10,7 @@ import (
 )
 
 // TestEchoReturnsThePrompt verifies that the shipped runner echoes the
-// prompt back, which is what makes the scaffold work out of the box.
+// prompt back, which is what makes the queue work out of the box.
 func TestEchoReturnsThePrompt(t *testing.T) {
 	runner := NewEcho(nil, nil)
 

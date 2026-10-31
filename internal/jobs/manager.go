@@ -812,10 +812,6 @@ func (m *Manager) StoreArtifact(jobID, kind string, data []byte, filename string
 	record.Set("mime", MimeTypeOf(data))
 	record.Set("bytes", len(data))
 
-	if size, dimErr := DimensionsOf(data); dimErr == nil {
-		record.Set("width", size.Width)
-		record.Set("height", size.Height)
-	}
 	if len(meta) > 0 {
 		record.Set("meta", meta)
 	}

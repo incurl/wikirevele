@@ -44,6 +44,17 @@ Wails webview
 The frontend talks to the backend **only** through the Wails bindings. It
 never talks to PocketBase or to a remote API directly.
 
+### The collections
+
+| Collection | Purpose |
+| --- | --- |
+| `jobs` | The job metadata: the prompt, the parameters, the status, the result, the errors |
+| `artifacts` | The files a job produced or consumed, with their metadata |
+| `app_settings` | The encrypted secrets and the preferences |
+| `wikidata_items` | The imported Wikidata items, one record per item, keyed by `qid` |
+| `wikidata_properties` | The imported property dictionary, one record per property, keyed by `pid` |
+| `etl_job_history` | The extractions: the command that was run, its parameters and what came of it |
+
 ## Requirements
 
 | Tool | Version | Notes |
@@ -215,8 +226,8 @@ Everything lives in `pb_data/` next to the executable:
 
 | Path | Contents |
 | --- | --- |
-| `pb_data/data.db` | The SQLite database (3 collections) |
-| `pb_data/storage/` | The uploaded and generated files, served by PocketBase's native file route |
+| `pb_data/data.db` | The SQLite database (6 collections) |
+| `pb_data/storage/` | The stored files, served by PocketBase's native file route |
 | `pb_data/.wikirevele_key` | The AES-256-GCM key for the secrets (mode 0600) |
 
 Set `WIKIREVELE_DATA_DIR` to relocate it.
@@ -264,8 +275,8 @@ The dataset is produced in two stages, in **one binary**.
 
 **Stage 1 — the ETL worker**, the `etl` subcommand of the same
 executable. It reads the dump from the standard input in one pass,
-keeps the entities linked to the target, trims them to the fields the
-application needs, and writes two NDJSON files.
+keeps the entities linked to the targets, trims them to the fields the
+application needs, and writes the NDJSON files.
 
 ```bash
 PATH="$HOME/go/bin:$PATH" wails3 task build:etl
@@ -335,15 +346,14 @@ fetches it back through PocketBase's file route.
 | Document | Read it for |
 | --- | --- |
 | [docs/architecture.md](docs/architecture.md) | Why the pieces are shaped the way they are |
-| [docs/porting.md](docs/porting.md) | The checklist for taking this template to a new application |
 | [docs/etl-manual.md](docs/etl-manual.md) | The operator's guide to the ETL worker: how to run it, what it writes, and what to do when it misbehaves |
 | [docs/wikidata.md](docs/wikidata.md) | The Wikidata dataset pipeline: what the ETL worker trims, what the application imports, and the boundary between them |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | The failures that cost time, and what fixes them |
-| [docs/audit.md](docs/audit.md) | The audit of the scaffold: the defects and their reproductions |
+| [docs/audit.md](docs/audit.md) | The audit: the defects and their reproductions |
 | [docs/code-review.md](docs/code-review.md) | The trade-offs that were deliberately kept, and why |
 | [CONTEXT.md](CONTEXT.md) | The vocabulary: what each term means, and what it does not |
 | [AGENTS.md](AGENTS.md) | The working rules for AI coding agents |
-| [.agents/skills/](.agents/skills) | Task-scoped procedures: new application, backend method, migration, frontend panel, release |
+| [.agents/skills/](.agents/skills) | Task-scoped procedures: backend method, migration, frontend panel, release |
 
 ## Licence
 

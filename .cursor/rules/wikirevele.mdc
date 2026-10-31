@@ -1,5 +1,5 @@
 ---
-description: WikiRevele — Wails v3 + PocketBase + React desktop application template
+description: WikiRevele — Wails v3 + PocketBase + React desktop application for exploring a Wikidata dataset
 globs:
   - "**/*.go"
   - "**/*.ts"
@@ -9,8 +9,7 @@ alwaysApply: true
 
 # WikiRevele
 
-A desktop application template: Wails v3, an embedded PocketBase, a React frontend. The domain belongs to the application; the
-scaffolding is shared.
+A desktop application for exploring a Wikidata dataset: Wails v3, an embedded PocketBase, a React frontend.
 
 The canonical guides are `AGENTS.md` (working rules, commands, change routing), `CONTEXT.md` (vocabulary),
 `docs/architecture.md` (why), and `docs/troubleshooting.md` (what breaks). Read `AGENTS.md` before making a change.

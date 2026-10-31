@@ -1,6 +1,6 @@
 # Code review — 2026-10-28
 
-A review of the scaffold's design and API. **Every finding in it has been fixed.** This document keeps the two parts that
+A review of the application's design and API. **Every finding in it has been fixed.** This document keeps the two parts that
 are still worth reading: the trade-offs that were deliberately kept, and the order the work was done in.
 
 The findings themselves are listed in the git history. What follows is what a reader of the current code would want to
@@ -18,7 +18,8 @@ A review that only lists complaints is not a review. These looked questionable a
   A CSS framework here would be weight without benefit.
 - **A 30-minute default timeout.** Opinionated, and the right opinion: the failure it prevents (a hung runner stopping the
   queue) is silent, and the failure it causes (a legitimate long job) is loud and documented.
-- **No i18n, no UI kit, three runtime dependencies.** The scaffold's value is that it can be read in an afternoon.
+- **No i18n.** The interface is in one language, and adding the machinery for a second one before it is needed would be
+  weight without benefit.
 
 ---
 
@@ -33,6 +34,6 @@ A review that only lists complaints is not a review. These looked questionable a
 | 5 | **Dead code** (4), **the false comment** (5) | Deletion; frees the reader from checking |
 | 6 | **Error boundary, toast timer** (10, 11) | The two frontend bugs a user can see |
 | 7 | **`App.tsx` split, `ui?.`, `savedZoom`** (12, 13, 14) | Polish; do it with the first real panel |
-| 8 | **Image handling** (15), **tests** (16), **docs** (17) | Decide, cover, correct |
+| 8 | **File handling** (15), **tests** (16), **docs** (17) | Decide, cover, correct |
 
 Findings 1–8 are each under an hour and together remove the whole of the "unused API" smell. That is where I would start.

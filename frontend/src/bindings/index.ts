@@ -137,7 +137,7 @@ export function listJobs(limit = 50): Promise<Job[]> {
  *
  * An empty jobId lists every artifact.
  *
- * No panel calls this yet: the scaffold has no artifact panel. It is
+ * No panel calls this yet: the application has no artifact panel. It is
  * here because the artifacts are part of the queue's contract, and the
  * add-frontend-panel skill uses it as the example of a list with
  * per-row actions.

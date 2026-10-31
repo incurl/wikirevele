@@ -1,7 +1,7 @@
 // Package jobs owns the generic job lifecycle: creation, execution
 // against a pluggable runner, persistence and status reporting.
 //
-// The scaffold deliberately models no domain. A job carries a title, an
+// The queue deliberately models no domain. A job carries a title, an
 // arbitrary set of parameters and an arbitrary result, and the work
 // itself is delegated to a Runner, which the application registers.
 //
@@ -62,7 +62,7 @@ type Job struct {
 
 // Result is what a Runner returns.
 //
-// The scaffold defines no fields: the application decides what a
+// The queue defines no fields: the application decides what a
 // successful job produced. ArtifactIDs lists the files that were
 // stored, and the rest of the payload is returned to the frontend
 // as-is.
@@ -110,10 +110,10 @@ func (e *Error) Unwrap() error {
 
 // Runner executes a job.
 //
-// This is the extension point of the scaffold: implement it to plug
-// your own backend into the queue. The manager calls Run once per job,
-// on a goroutine, with a context that is cancelled when the user
-// cancels the job.
+// This is the extension point of the queue: implement it to plug your
+// own backend into the queue. The manager calls Run once per job, on a
+// goroutine, with a context that is cancelled when the user cancels
+// the job.
 //
 // A Runner must honour ctx and return promptly when it is cancelled.
 // Returning an error marks the job as failed; returning a nil error

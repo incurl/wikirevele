@@ -1,12 +1,13 @@
-// WikiRevele is a desktop application scaffold.
+// WikiRevele is a desktop application for exploring a Wikidata dataset.
 //
 // It wires together Wails v3, an embedded PocketBase and a React
-// frontend, and it provides a generic job queue that an application
-// plugs its own backend into.
+// frontend. A dump is trimmed down to the entities linked to a place by
+// the ETL worker, the "etl" subcommand of this same binary, and the
+// application imports the result into the database and browses it as a
+// gallery of cards.
 //
-// The UI shell is deliberately plain: it is the starting point, not
-// the product. Replace the contents of internal/runner with your own
-// work and extend the frontend as needed.
+// Around that sits a generic job queue: it owns the lifecycle of a unit
+// of work, and the work itself is delegated to a runner.
 //
 // Persistence, file storage, migrations and access rules are provided
 // by PocketBase, embedded as a Go library. PocketBase is never run as a
@@ -116,7 +117,7 @@ func run() error {
 	consoleLog := console.New()
 
 	// The job manager delegates the work to the registered runner. The
-	// scaffold ships an echo runner, which is replaced by your own.
+	// queue ships an echo runner, which a real one replaces.
 	jobManager := jobs.NewManager(
 		pbService.App(),
 		jobs.WithLog(consoleLog),
@@ -218,9 +219,8 @@ func run() error {
 	etlSupervisor.SetEmitter(bridge)
 	etlSupervisor.SetLogSink(bridge)
 
-	// The window is half again the size of the scaffold's, because the
-	// workarea is the centre of the interface and the rails take room
-	// from it.
+	// The window is wide, because the workarea is the centre of the
+	// interface and the rails take room from it.
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:  bindings.AppName,
 		Width:  2160,

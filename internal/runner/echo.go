@@ -1,9 +1,8 @@
-// Package runner holds the example job runner of the scaffold.
+// Package runner holds the reference job runners of the queue.
 //
-// It is the extension point of WikiRevele: replace it with a runner that
-// talks to your own backend. The queue, the persistence, the
-// cancellation and the events all work the same way, whatever the
-// runner does.
+// It is the extension point of WikiRevele: add a runner that talks to
+// your own backend. The queue, the persistence, the cancellation and
+// the events all work the same way, whatever the runner does.
 //
 // The echo runner returns the prompt it was given, so that the whole
 // pipeline can be exercised without any external service.

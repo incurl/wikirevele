@@ -18,8 +18,9 @@ there is one source of truth.
    `internal/runner/`. Do not put domain logic into `internal/jobs/`.
 2. **The frontend talks to Go, not to the database.** Every call goes through `internal/bindings/service.go` and the typed
    wrappers in `frontend/src/bindings/index.ts`. Never import a generated binding file from a component.
-3. **`frontend/bindings/` and `frontend/dist/` are generated and gitignored.** Never hand-edit them. Regenerate with
-   `PATH="$HOME/go/bin:$PATH" wails3 task common:generate:bindings`.
+
+`frontend/bindings/` and `frontend/dist/` are generated and gitignored. Never hand-edit them. Regenerate with
+`PATH="$HOME/go/bin:$PATH" wails3 task common:generate:bindings`.
 
 ## Before you finish
 
@@ -39,7 +40,6 @@ python3 tools/license-audit.py
 
 | Skill | Use it for |
 | --- | --- |
-| `new-application` | Starting a new project from this template. |
 | `add-backend-method` | Adding a Go method the frontend can call. |
 | `add-migration` | Changing the PocketBase schema. |
 | `add-frontend-panel` | Adding a panel to the React frontend. |

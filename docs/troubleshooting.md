@@ -191,8 +191,8 @@ returns its own error, the job is reported as failed. Return `ctx.Err()` from th
 
 ### `The request requires valid record authorization token` (HTTP 401)
 
-PocketBase's API is answering, and it requires authentication for that route. The scaffold reads the collections through the Go
-backend, not over HTTP, so this only appears if you call `/api/collections/...` directly from the browser. It is expected
+PocketBase's API is answering, and it requires authentication for that route. The application reads the collections through the
+Go backend, not over HTTP, so this only appears if you call `/api/collections/...` directly from the browser. It is expected
 behaviour, not a misconfiguration.
 
 ### The stored file is not served
