@@ -984,7 +984,7 @@ code {
   margin: 0;
   padding: 0.6154rem 0.7692rem;
   background: var(--bg-input);
-  border: 1px solid var(--border);
+  border: 0.0769rem solid var(--border);
   border-radius: var(--radius);
   font-family: var(--mono);
   font-size: 0.7692rem;
@@ -1027,7 +1027,7 @@ code {
 .etl-progress {
   margin-top: 0.7692rem;
   padding-top: 0.7692rem;
-  border-top: 1px solid var(--border);
+  border-top: 0.0769rem solid var(--border);
 }
 
 .etl-status {
@@ -1053,7 +1053,7 @@ code {
 
 .etl-history-entry {
   padding: 0.6154rem 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.0769rem solid var(--border);
 }
 
 .etl-history-entry:last-child {

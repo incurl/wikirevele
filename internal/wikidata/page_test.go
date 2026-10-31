@@ -120,3 +120,60 @@ func TestThePageSortsByIdentifier(t *testing.T) {
 		t.Errorf("the first item is %q, want Q2 in a descending order", records[0].QID)
 	}
 }
+
+func TestTheFilterRefusesAPropertyThatIsNotAName(t *testing.T) {
+	// The property of a filter is put into the expression of the
+	// filter as it is. A property that is not a name of a property is
+	// not put into it at all.
+	service := importLines(t,
+		`{"id":"Q1","type":"item","labels":{},"claims":{}}`,
+	)
+
+	reader := NewReader(service.App())
+
+	cases := []string{
+		`P131" || qid != "ZZZ`,
+		`P131 or qid`,
+		`P131 || qid`,
+		`P131/sitelinks`,
+		`P131 & qid`,
+		`P131 = 1`,
+		`P131.qid`,
+	}
+
+	for _, property := range cases {
+		filter := reader.filterOf([]ClaimFilter{{Property: property, Value: "Q90"}})
+		if filter != "" {
+			t.Errorf("the property %q made the filter %q, want it refused", property, filter)
+		}
+	}
+}
+
+func TestTheFilterAcceptsAPropertyThatIsAName(t *testing.T) {
+	service := importLines(t,
+		`{"id":"Q1","type":"item","labels":{},"claims":{}}`,
+	)
+
+	reader := NewReader(service.App())
+
+	filter := reader.filterOf([]ClaimFilter{{Property: "P131", Value: "Q90"}})
+	if filter != `claims.P131 ~ "Q90"` {
+		t.Errorf("the filter is %q, want it to name the property", filter)
+	}
+}
+
+func TestTheFilterEscapesTheValue(t *testing.T) {
+	service := importLines(t,
+		`{"id":"Q1","type":"item","labels":{},"claims":{}}`,
+	)
+
+	reader := NewReader(service.App())
+
+	filter := reader.filterOf([]ClaimFilter{{Property: "P131", Value: `Q90" || qid != "ZZZ`}})
+	if strings.Contains(filter, `qid != "ZZZ ~ `) {
+		t.Errorf("the filter is %q, want the value escaped", filter)
+	}
+	if !strings.Contains(filter, `\"`) {
+		t.Errorf("the filter is %q, want the quotes of the value escaped", filter)
+	}
+}

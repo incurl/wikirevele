@@ -44,7 +44,7 @@ func (l *fakeLauncher) Launch(
 	ctx context.Context,
 	decompressor, dump string,
 	worker []string,
-) (io.Reader, *exec.Cmd, *exec.Cmd, error) {
+) (io.ReadCloser, *exec.Cmd, *exec.Cmd, error) {
 	l.started = true
 	l.workerArgs = worker
 
@@ -56,21 +56,29 @@ func (l *fakeLauncher) Launch(
 			fmt.Sprintf("%s; sleep %f", l.decompressorCommand, l.wait.Seconds()))
 	}
 
-	// The output is taken before the process starts.
-	output, err := workerProcess.StdoutPipe()
+	// The events are read from a pipe the test owns, so that the
+	// reader is not stopped by the wait of the worker.
+	eventsRead, eventsWrite, err := os.Pipe()
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	workerProcess.Stdout = eventsWrite
 
 	if err := decompressorProcess.Start(); err != nil {
+		_ = eventsRead.Close()
+		_ = eventsWrite.Close()
 		return nil, nil, nil, err
 	}
 	if err := workerProcess.Start(); err != nil {
 		_ = decompressorProcess.Process.Kill()
+		_ = eventsRead.Close()
+		_ = eventsWrite.Close()
 		return nil, nil, nil, err
 	}
 
-	return output, decompressorProcess, workerProcess, nil
+	_ = eventsWrite.Close()
+
+	return eventsRead, decompressorProcess, workerProcess, nil
 }
 
 func TestTheSupervisorRunsThePipelineAndReadsTheEvents(t *testing.T) {

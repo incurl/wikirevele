@@ -36,6 +36,15 @@ const (
 // The interval between two checks that the process is still alive.
 const pollInterval = 200 * time.Millisecond
 
+// EventDrainTimeout is how long the supervisor waits for the events of
+// a worker that is gone.
+//
+// The worker writes its last event and stops, so the reader reaches
+// the end of the pipe at once. The wait is for the other case: a child
+// of the worker that holds the pipe open. Without it, a run waits for
+// a process that has nothing to do with the run.
+const EventDrainTimeout = 2 * time.Second
+
 // Progress is the state of a running pipeline.
 //
 // It is what the interface shows, and it is what the history records
@@ -100,7 +109,12 @@ type Launcher interface {
 	// of the worker, so the two are already piped together when the
 	// function returns. The standard output of the worker is
 	// returned, so that the caller can read the events.
-	Launch(ctx context.Context, decompressor, dump string, worker []string) (io.Reader, *exec.Cmd, *exec.Cmd, error)
+	//
+	// The reader of the events is an io.ReadCloser and not an
+	// io.Reader, because the caller has to be able to stop it: a
+	// child of the worker can hold the pipe open, and the run must
+	// not wait for it.
+	Launch(ctx context.Context, decompressor, dump string, worker []string) (io.ReadCloser, *exec.Cmd, *exec.Cmd, error)
 }
 
 // systemLauncher starts the real processes.
@@ -113,7 +127,7 @@ func (l systemLauncher) Launch(
 	ctx context.Context,
 	decompressor, dump string,
 	worker []string,
-) (io.Reader, *exec.Cmd, *exec.Cmd, error) {
+) (io.ReadCloser, *exec.Cmd, *exec.Cmd, error) {
 	decompressorName, decompressorArgs := splitDecompressor(decompressor, dump)
 	decompressorProcess := exec.CommandContext(ctx, decompressorName, decompressorArgs...)
 	decompressorProcess.Stderr = os.Stderr
@@ -136,12 +150,18 @@ func (l systemLauncher) Launch(
 	workerProcess.Stdin = pipe
 	workerProcess.Stderr = os.Stderr
 
-	// The output is taken before the process starts: the pipe cannot
-	// be created after.
-	output, err := workerProcess.StdoutPipe()
+	// The events are read from a pipe the supervisor owns.
+	//
+	// The pipe of os/exec cannot be used here: waiting for the
+	// worker closes it, and the reader then loses the last events
+	// with an "file already closed" error. A pipe of os.Pipe is not
+	// touched by the wait, so the reader gets every line the worker
+	// wrote, and the supervisor can close it when the run is over.
+	eventsRead, eventsWrite, err := os.Pipe()
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("etlpipeline: the output: %w", err)
+		return nil, nil, nil, fmt.Errorf("etlpipeline: the events pipe: %w", err)
 	}
+	workerProcess.Stdout = eventsWrite
 
 	// Both processes share a process group, so that stopping the run
 	// stops the decompressor as well. The decompressor would
@@ -151,14 +171,23 @@ func (l systemLauncher) Launch(
 	setProcessGroup(workerProcess)
 
 	if err := decompressorProcess.Start(); err != nil {
+		_ = eventsRead.Close()
+		_ = eventsWrite.Close()
 		return nil, nil, nil, fmt.Errorf("etlpipeline: start %s: %w", decompressor, err)
 	}
 	if err := workerProcess.Start(); err != nil {
 		_ = decompressorProcess.Process.Kill()
+		_ = eventsRead.Close()
+		_ = eventsWrite.Close()
 		return nil, nil, nil, fmt.Errorf("etlpipeline: start the worker: %w", err)
 	}
 
-	return output, decompressorProcess, workerProcess, nil
+	// The write end is closed here: the worker holds the other one,
+	// and the read end sees the end of the output when the worker is
+	// gone and nothing else holds it open.
+	_ = eventsWrite.Close()
+
+	return eventsRead, decompressorProcess, workerProcess, nil
 }
 
 // Supervisor runs the pipelines.
@@ -309,11 +338,20 @@ func (s *Supervisor) Start(ctx context.Context, opts JobOptions) (Progress, erro
 	s.mu.Unlock()
 
 	go s.readEvents(r, output)
-	go s.watch(r, decompressorProcess, worker)
+	go s.watch(r, decompressorProcess, worker, output)
 
-	s.emit(r.progress)
+	// The progress is read under the lock: the reader of the events
+	// writes it, and the two goroutines are already running.
+	s.mu.Lock()
+	current := r.progress
+	emitter := s.emitter
+	s.mu.Unlock()
 
-	return r.progress, nil
+	if emitter != nil {
+		emitter.EmitEtlProgress(current)
+	}
+
+	return current, nil
 }
 
 // workerArguments returns the arguments of the worker.
@@ -409,17 +447,38 @@ func (s *Supervisor) readEvents(r *run, output io.Reader) {
 // The worker is the one that decides when the run is over: the
 // decompressor may finish first, and the worker is the one that
 // writes the output.
-func (s *Supervisor) watch(r *run, decompressor, worker *exec.Cmd) {
+func (s *Supervisor) watch(r *run, decompressor, worker *exec.Cmd, events io.ReadCloser) {
+	// The worker is waited for first, and the events are read while it
+	// is running.
+	//
+	// The reader has to run at the same time as the wait: a reader
+	// that starts after the worker is gone reads nothing. The
+	// supervisor owns the pipe, so the wait does not close it and the
+	// reader gets every line the worker wrote.
 	workerErr := worker.Wait()
+
+	// The reader ends when the pipe reaches its end, which happens
+	// when the worker is gone and nothing else holds it open.
+	//
+	// A child of the worker can hold the pipe open after the worker
+	// is gone, so the reader is given a moment to finish and the pipe
+	// is closed if it does not: a run that waits for a grandchild is a
+	// run that never ends.
+	//
+	// The pipe is not closed before the reader is done, because the
+	// lines that are still in it would be lost, and the counters of
+	// the run would be wrong.
+	select {
+	case <-r.read:
+		// The reader has read everything.
+	case <-time.After(EventDrainTimeout):
+		// The pipe is still open: something holds it. It is
+		// closed, and the reader stops with it.
+		_ = events.Close()
+		<-r.read
+	}
+
 	decompressorErr := decompressor.Wait()
-
-	// The events are read before the run is closed: the worker writes
-	// its last event before it stops, and the reader may not have read
-	// it yet when the process is over. Closing the run first would
-	// lose the counters of a run that finished.
-	<-r.read
-
-	close(r.done)
 
 	// The status of the run is decided under the lock: the reader of
 	// the events changes the counters of the same run, and the two
@@ -449,24 +508,26 @@ func (s *Supervisor) watch(r *run, decompressor, worker *exec.Cmd) {
 
 	r.progress.FinishedAt = time.Now()
 	progress := r.progress
-	s.mu.Unlock()
-
-	if !running {
-		// The run was cancelled, and the status was already set.
-		s.emit(progress)
-		return
-	}
-
-	s.emit(progress)
-
-	// The service is told how the run ended, so that it can record
-	// it and import the output.
-	s.mu.Lock()
 	onFinished := s.onFinished
 	s.mu.Unlock()
 
+	// The run is closed only now that the status is decided. A waiter
+	// that is woken by the close reads the progress, and the status
+	// has to be there already: a run that reports "running" to a
+	// caller that was told it had finished is a lie.
+	close(r.done)
+
+	s.emit(progress)
+
+	if !running {
+		// The run was cancelled, and the status was already set.
+		return
+	}
+
+	// The service is told how the run ended, so that it can record
+	// it and import the output.
 	if onFinished != nil {
-		onFinished(r.progress)
+		onFinished(progress)
 	}
 }
 

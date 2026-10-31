@@ -194,11 +194,47 @@ func (r *Reader) filterOf(filters []ClaimFilter) string {
 		if filter.Property == "" || filter.Value == "" {
 			continue
 		}
+		if !isPropertyName(filter.Property) {
+			// A property that is not a name is refused here and not
+			// in the parser: the parser would refuse it too, but
+			// the error would reach the user as a failed page.
+			continue
+		}
 		conditions = append(conditions, fmt.Sprintf(
 			"claims.%s ~ %s", filter.Property, quoteValue(filter.Value)))
 	}
 
 	return strings.Join(conditions, " && ")
+}
+
+// isPropertyName tells whether a string can be a property of a claim.
+//
+// The property is put into the filter expression as it is, and the
+// filter expression is read by the parser of PocketBase. A property is
+// a name of a property of Wikidata, so it is letters and digits and
+// the dash: "P31", "P131", "P366". Anything else is not a property,
+// and it does not go into the expression.
+//
+// The value of a filter is quoted and escaped, so a value cannot break
+// out of its string. The property is a name and not a string, and it
+// cannot be quoted.
+func isPropertyName(property string) bool {
+	if property == "" {
+		return false
+	}
+
+	for _, r := range property {
+		switch {
+		case r >= 'a' && r <= 'z':
+		case r >= 'A' && r <= 'Z':
+		case r >= '0' && r <= '9':
+		case r == '-':
+		default:
+			return false
+		}
+	}
+
+	return true
 }
 
 // sortClause builds the order of a query.

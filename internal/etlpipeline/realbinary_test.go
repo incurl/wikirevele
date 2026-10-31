@@ -27,7 +27,7 @@ func (l binaryLauncher) Launch(
 	ctx context.Context,
 	decompressor, dump string,
 	worker []string,
-) (io.Reader, *exec.Cmd, *exec.Cmd, error) {
+) (io.ReadCloser, *exec.Cmd, *exec.Cmd, error) {
 	decompressorName, decompressorArgs := splitDecompressor(decompressor, dump)
 	decompressorProcess := exec.CommandContext(ctx, decompressorName, decompressorArgs...)
 	decompressorProcess.Stderr = os.Stderr
@@ -41,23 +41,32 @@ func (l binaryLauncher) Launch(
 	workerProcess.Stdin = pipe
 	workerProcess.Stderr = os.Stderr
 
-	output, err := workerProcess.StdoutPipe()
+	// The events are read from a pipe the test owns, so that the
+	// reader is not stopped by the wait of the worker.
+	eventsRead, eventsWrite, err := os.Pipe()
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	workerProcess.Stdout = eventsWrite
 
 	setProcessGroup(decompressorProcess)
 	setProcessGroup(workerProcess)
 
 	if err := decompressorProcess.Start(); err != nil {
+		_ = eventsRead.Close()
+		_ = eventsWrite.Close()
 		return nil, nil, nil, err
 	}
 	if err := workerProcess.Start(); err != nil {
 		_ = decompressorProcess.Process.Kill()
+		_ = eventsRead.Close()
+		_ = eventsWrite.Close()
 		return nil, nil, nil, err
 	}
 
-	return output, decompressorProcess, workerProcess, nil
+	_ = eventsWrite.Close()
+
+	return eventsRead, decompressorProcess, workerProcess, nil
 }
 
 // TestTheRealBinaryRunsAsTheWorker runs the whole path the desktop

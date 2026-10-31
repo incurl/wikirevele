@@ -300,6 +300,87 @@ The numbers above are a snapshot of the day of the audit. Re-run `go test -cover
 
 ---
 
+## Audit — 2026-11-01
+
+The first audit found eight issues. This one covers the ETL pipeline, which did not exist when that audit was written, and
+the parts of the frontend that were rewritten around it.
+
+Three findings, and two of them were real bugs that the test suite was not catching.
+
+| # | Severity | Area | Finding | Status |
+| --- | --- | --- | --- | --- |
+| 9 | **High** | ETL pipeline | The events of a finished run are lost: the counters of the run are zero | **Fixed** |
+| 10 | **High** | ETL pipeline | A run never ends if a child of the worker holds the pipe of the events open | **Fixed** |
+| 11 | **Medium** | ETL pipeline | The progress of a run is read without the lock, and the race detector finds it | **Fixed** |
+
+### 9. High — the events of a finished run are lost
+
+The supervisor read the events of the worker on the pipe of `os/exec`, and it waited for the worker before it read them.
+`Cmd.Wait` closes that pipe, so the reader got `file already closed` and read nothing at all.
+
+The run still finished, and it still reported `succeeded`, but every counter was zero: the number of items, the number of
+lines and the number of properties. The interface showed a run that had done nothing, and the history recorded it.
+
+It was intermittent, and the reason was the scheduler: the reader goroutine sometimes reached the pipe before the wait
+closed it. The race detector made it worse, because it slows the process down enough for the reader to win more often.
+
+The fix was to own the pipe. The launcher now creates the pipe with `os.Pipe` and hands the read end to the supervisor.
+The wait does not touch it, the reader gets every line, and the supervisor closes it when the run is over.
+
+The order matters and is not obvious: the pipe cannot be closed before the reader is done, because the lines that are
+still in it would be lost, and the counters would be wrong again. The pipe is closed only after the reader has finished,
+or after a timeout when something holds it open.
+
+### 10. High — a run never ends if a child holds the pipe open
+
+Fixing finding 9 in the other direction exposed this one. If the supervisor waits for the end of the pipe before it waits
+for the worker, and a child of the worker holds the pipe open, the run never ends.
+
+The worker is the ETL of this binary, and it does not fork, so this was not reachable in the application. It was reachable
+in the tests, where the fake worker is a shell: `sh -c "sleep 30"` forks, and the child inherits the standard output and
+holds the pipe open for thirty seconds after the worker is gone. A cancelled run waited for that child.
+
+The order is now: wait for the worker, then wait for the reader, with a timeout. The reader ends when the pipe reaches its
+end, which happens when the worker is gone and nothing else holds it open. When something does hold it, the pipe is closed
+after `EventDrainTimeout` and the reader stops with it, so a grandchild cannot keep a run alive.
+
+### 11. Medium — the progress of a run is read without the lock
+
+`Start` returned `r.progress` and published it without holding the lock, while the reader of the events was already
+writing it. The race detector found it once the two earlier failures were out of the way.
+
+Every access to `r.progress` is now under the lock.
+
+### What was done
+
+The three findings were fixed together, because the first fix was not right on its own: reordering the wait alone traded a
+lost run for a run that never ends. The pipe is owned by the supervisor, the reader is bounded by the close, and the
+progress is read under the lock.
+
+Three tests pin the behaviour, in `internal/etlpipeline/regression_test.go`. They were checked against the old code:
+the first fails with the counters at zero, the second waits for the grandchild and times out. They are not tests that
+pass against the bug they describe.
+
+### What was found and not changed
+
+- **`etlpipeline.Service` has no test of its own.** The supervisor has a good one, and the service is covered indirectly
+  through `internal/bindings`. The service is the layer that writes the history and calls the importer, and it is the layer
+  with the most to lose.
+- **The runs are never removed from the supervisor.** `s.runs` grows by one entry per run, and the map is only read
+  afterwards. A long session with many runs holds every one of them.
+
+### What was found and fixed on the way
+
+- **The property of a claim filter was not escaped.** The value is quoted and escaped, the property was not: it was put
+  into the filter expression as it is. The filter parser refuses every injection that was tried — `||`, `or`, `&`, a
+  quoted string and a path — so it was not reachable as an injection, but a property that the parser refuses was an error
+  the user saw as a failed page rather than as a rejected filter. A property is now checked against the shape of the
+  names of the properties of Wikidata, and it is refused before it reaches the expression.
+- **The stylesheet had three `1px` borders.** The zoom scales the root font size, and a `px` border does not scale with
+  it. The rest of the stylesheet is in `rem`, and the three borders are too now.
+
+---
+
 ## What was done
 
 The findings were fixed in the order 2, 3, 4, 5, 6, 7, 8. Finding 1 was left open, because it needs a decision about the
