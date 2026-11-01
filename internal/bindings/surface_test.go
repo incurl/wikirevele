@@ -17,12 +17,15 @@ var expectedMethods = []string{
 	"BuildEtlCommand",
 	"CancelEtlJob",
 	"CancelJob",
+	"CancelSync",
 	"CancelWikidataImport",
 	"ClearConsoleEntries",
 	"DeleteArtifact",
 	"DeleteEtlHistoryEntry",
 	"DeleteJob",
 	"GetSettings",
+	"GetSyncProgress",
+	"GetSyncSet",
 	"GetWikidataDataDir",
 	"GetWikidataImportProgress",
 	"GetWikidataItems",
@@ -35,8 +38,11 @@ var expectedMethods = []string{
 	"ListJobs",
 	"RetryJob",
 	"SaveCredentials",
+	"SaveSyncSet",
 	"SaveUI",
+	"SetSyncPassword",
 	"StartEtlJob",
+	"StartSync",
 	"SubmitJob",
 }
 
@@ -117,6 +123,13 @@ func TestNoBoundMethodReturnsAnInternalType(t *testing.T) {
 		"bindings.WikidataPageRequest": true,
 		"bindings.WikidataClaimFilter": true,
 		"bindings.WikidataItemView":    true,
+
+		// The views of the sync. They are declared in this package,
+		// like the views of the items, because a bound method must
+		// not return the type of an internal package.
+		"bindings.SyncSetView":        true,
+		"bindings.SyncCollectionView": true,
+		"bindings.SyncProgressView":   true,
 	}
 
 	for i := 0; i < typ.NumMethod(); i++ {

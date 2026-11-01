@@ -19,6 +19,14 @@ const (
 	SettingAPIKey = "app.api_key"
 	// SettingBaseURL holds the base URL of the remote API.
 	SettingBaseURL = "app.base_url"
+	// SettingSyncEmail holds the identity of the superuser of the
+	// remote server.
+	SettingSyncEmail = "app.sync_email"
+	// SettingSyncPassword holds the password of the superuser of the
+	// remote server.
+	//
+	// It is a secret and it is stored encrypted, like the API key.
+	SettingSyncPassword = "app.sync_password"
 )
 
 // UI holds the user interface preferences.
@@ -243,3 +251,70 @@ func (s *SettingsStore) GetBaseURL() (string, error) {
 // It points at a placeholder host on purpose: an application that talks
 // to a real API replaces it with its own default.
 const DefaultBaseURL = "https://api.example.com"
+
+// SetSyncEmail stores the identity of the superuser of the remote
+// server.
+//
+// The identity is not a secret, and it is stored as it is: the reader
+// of the settings shows it, so that the user knows which account the
+// sync uses.
+func (s *SettingsStore) SetSyncEmail(email string) error {
+	return s.setValue(SettingSyncEmail, email, false)
+}
+
+// GetSyncEmail returns the identity of the superuser of the remote
+// server.
+func (s *SettingsStore) GetSyncEmail() (string, error) {
+	var email string
+	found, err := s.getValue(SettingSyncEmail, false, &email)
+	if err != nil {
+		return "", err
+	}
+	if !found {
+		return "", nil
+	}
+	return email, nil
+}
+
+// SetSyncPassword stores the password of the superuser of the remote
+// server.
+//
+// The password is a secret: it is encrypted before it is written, and
+// it is never returned to the frontend.
+func (s *SettingsStore) SetSyncPassword(password string) error {
+	return s.setValue(SettingSyncPassword, password, true)
+}
+
+// GetSyncPassword returns the decrypted password of the superuser of
+// the remote server.
+//
+// The second return value reports whether a password is configured.
+//
+// The password is read by the Go backend only. It is never returned
+// to the frontend, which only ever learns whether one is present.
+func (s *SettingsStore) GetSyncPassword() (string, bool, error) {
+	var password string
+	found, err := s.getValue(SettingSyncPassword, true, &password)
+	if err != nil {
+		return "", false, err
+	}
+	return password, found, nil
+}
+
+// GetRaw reads a setting as raw JSON.
+//
+// The sync keeps its configuration in the settings of the application,
+// and the values are held as JSON documents. The store of the package
+// reads them through this method, so that the shape of the settings
+// stays in one place.
+func (s *SettingsStore) GetRaw(key string, out any) (bool, error) {
+	return s.getValue(key, false, out)
+}
+
+// SetRaw writes a setting from a value.
+//
+// The value is stored as it is, and it is not encrypted: the
+// configuration of the sync is not a secret.
+func (s *SettingsStore) SetRaw(key string, value any) error {
+	return s.setValue(key, value, false)
+}

@@ -98,6 +98,25 @@ key when the submitted one is empty, so the UI never has to read back a secret i
 The debug console shows `console.Fingerprint(secret)` — a short, non-reversible digest — so that two keys can be told apart in a
 log line without either being revealed.
 
+## The sync compares a field of its own
+
+The sync moves collections to a remote PocketBase server. The schema travels with the collections API and the records with the
+batch API, so the server needs no extension of its own.
+
+The one thing that is **not** used is the `updated` field of the records. PocketBase overwrites it on every write, over the REST
+API as well, so it says when the server was written to and not when the record was changed. A conflict resolved on it would be
+resolved by accident: the side that wrote last would always win.
+
+The sync owns two fields instead, `source_updated` and `source_origin`, and it writes them and nothing else does. They are
+**text** fields, because the setter of an autodate field is a no-op: a text field keeps the value it is given, on both sides, and
+the text of the format of the server sorts the same way the times sort.
+
+The rule is the same everywhere: the record with the newer `source_updated` wins. A pull takes the remote record when it is
+newer, and a push does not send a record that the server has newer. Both halves have to agree: a rule that is only in the pull
+would let the push overwrite what the pull refused.
+
+See [`docs/sync.md`](sync.md) for the protocol.
+
 ## The migrations are the schema
 
 The schema lives in `internal/pocketbase/migrations/`, not in a JSON file and not in the code that uses it. Each migration
@@ -407,3 +426,4 @@ it must not: the data of a resource goes through `useTable`.
 | How is a run driven from the interface? | `internal/etlpipeline/`, `internal/etlhistory/` |
 | How is the dataset imported? | `internal/wikidata/importer.go` |
 | How are the cards rendered? | `frontend/src/features/wikidata/` |
+| How does a collection travel to another server? | `internal/sync/`, `docs/sync.md` |

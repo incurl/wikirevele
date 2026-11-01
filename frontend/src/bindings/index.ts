@@ -117,6 +117,46 @@ export const EVENT_CONSOLE_ENTRY = 'console:entry';
 export const EVENT_ETL_PROGRESS = 'etl:progress';
 
 /**
+ * The Wails event name emitted when a sync changes state.
+ */
+export const EVENT_SYNC_PROGRESS = 'sync:progress';
+
+/**
+ * The directions a collection can be synced in.
+ *
+ * The names are the ones the backend stores, and a rename on either
+ * side would make a stored set unreadable.
+ */
+export const SYNC_DIRECTIONS = ['push', 'pull', 'reconcile'] as const;
+
+/**
+ * One direction of a sync.
+ */
+export type SyncDirection = (typeof SYNC_DIRECTIONS)[number];
+
+/**
+ * One collection that can be synced.
+ *
+ * The collections are normalised here: the generator types a missing
+ * array as nullable, and the backend always sends an array.
+ */
+export type SyncCollection = Omit<BindingsModels.SyncCollectionView, 'direction'> & {
+  direction: SyncDirection;
+};
+
+/**
+ * The set of the collections that take part in a sync.
+ */
+export type SyncSet = Omit<BindingsModels.SyncSetView, 'collections'> & {
+  collections: SyncCollection[];
+};
+
+/**
+ * The progress of a sync.
+ */
+export type SyncProgress = BindingsModels.SyncProgressView;
+
+/**
  * Submits a job.
  */
 export function submitJob(request: {
@@ -384,6 +424,60 @@ export function listEtlHistory(limit: number): Promise<EtlHistoryEntry[]> {
  */
 export function deleteEtlHistoryEntry(recordId: string): Promise<void> {
   return AppServiceBindings.DeleteEtlHistoryEntry(recordId) as unknown as Promise<void>;
+}
+
+/**
+ * Returns the collections that can be synced and the configuration of
+ * the sync.
+ *
+ * The password of the superuser is never returned: the backend only
+ * ever says whether one is stored.
+ */
+export function getSyncSet(): Promise<SyncSet> {
+  return (
+    AppServiceBindings.GetSyncSet() as unknown as Promise<SyncSet & { collections: SyncCollection[] | null }>
+  ).then((set) => ({ ...set, collections: set.collections ?? [] }));
+}
+
+/**
+ * Stores the set of the collections that take part in a sync.
+ */
+export function saveSyncSet(set: SyncSet): Promise<void> {
+  return AppServiceBindings.SaveSyncSet(set as never) as unknown as Promise<void>;
+}
+
+/**
+ * Stores the password of the superuser of the remote server.
+ *
+ * The password is write-only from the point of view of the frontend:
+ * it is stored encrypted and it is never sent back.
+ */
+export function setSyncPassword(password: string): Promise<void> {
+  return AppServiceBindings.SetSyncPassword(password) as unknown as Promise<void>;
+}
+
+/**
+ * Starts a sync of the whole set.
+ *
+ * The sync runs in the background, and the progress comes back as a
+ * Wails event.
+ */
+export function startSync(): Promise<void> {
+  return AppServiceBindings.StartSync() as unknown as Promise<void>;
+}
+
+/**
+ * Stops the sync that is running.
+ */
+export function cancelSync(): Promise<void> {
+  return AppServiceBindings.CancelSync() as unknown as Promise<void>;
+}
+
+/**
+ * Returns the state of the last sync.
+ */
+export function getSyncProgress(): Promise<SyncProgress> {
+  return AppServiceBindings.GetSyncProgress() as unknown as Promise<SyncProgress>;
 }
 
 /**

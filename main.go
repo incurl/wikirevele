@@ -33,6 +33,7 @@ import (
 	"github.com/incurl/wikirevele/internal/jobs"
 	"github.com/incurl/wikirevele/internal/pocketbase"
 	"github.com/incurl/wikirevele/internal/runner"
+	"github.com/incurl/wikirevele/internal/sync"
 	"github.com/incurl/wikirevele/internal/wikidata"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -53,6 +54,9 @@ func init() {
 
 	// The progress of an ETL run.
 	application.RegisterEvent[etlpipeline.Progress]("etl:progress")
+
+	// The progress of a sync.
+	application.RegisterEvent[sync.Progress]("sync:progress")
 }
 
 func main() {
@@ -162,7 +166,44 @@ func run() error {
 	etlSupervisor := etlpipeline.NewSupervisor()
 	etlService := etlpipeline.NewService(etlSupervisor, etlHistory, wikidataService)
 
-	appService := bindings.NewAppService(pbService, settings, jobManager, consoleLog, wikidataService, etlService)
+	// The sync moves the collections between this application and the
+	// remote server. It is always started from here: the remote
+	// server never calls back.
+	//
+	// The credentials are read when a run starts, and not held by the
+	// service, so that a change to them takes effect at once.
+	syncStore := sync.NewLocalStore(pbService.App())
+	syncService := sync.NewService(syncStore, func() (*sync.Client, error) {
+		baseURL, err := settings.GetBaseURL()
+		if err != nil {
+			return nil, err
+		}
+		email, err := settings.GetSyncEmail()
+		if err != nil {
+			return nil, err
+		}
+		password, _, err := settings.GetSyncPassword()
+		if err != nil {
+			return nil, err
+		}
+		return sync.NewClient(baseURL, email, password), nil
+	})
+	// The log of the sync is a file in the data directory: a run of a
+	// large collection has more to say than the interface can show.
+	syncService.SetLogger(sync.NewFileLogger(pbService.DataDir()))
+
+	// The set of the collections and the times of the last runs are
+	// read back from the settings, so that the panel opens on the
+	// set the reader chose last time.
+	syncSettings := sync.NewStore(settings.GetRaw, settings.SetRaw)
+	if stored, err := syncSettings.Load(); err != nil {
+		consoleLog.Warn("sync", err.Error())
+	} else {
+		syncService.SetSyncSet(stored.Set)
+		syncService.SetCursors(stored.Cursors)
+	}
+
+	appService := bindings.NewAppService(pbService, settings, jobManager, consoleLog, wikidataService, etlService, syncService)
 
 	// Mount PocketBase's own REST and file API alongside the static
 	// frontend. This keeps everything on a single origin: no extra
@@ -218,6 +259,7 @@ func run() error {
 	wikidataService.SetProgressEmitter(bridge.EmitWikidataImportProgress)
 	etlSupervisor.SetEmitter(bridge)
 	etlSupervisor.SetLogSink(bridge)
+	syncService.SetEmitter(bridge)
 
 	// The window is wide, because the workarea is the centre of the
 	// interface and the rails take room from it.

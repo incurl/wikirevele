@@ -12,7 +12,7 @@
 /**
  * The identifier of a scope.
  */
-export type ScopeId = "workarea" | "extract" | "import" | "submit" | "history";
+export type ScopeId = "workarea" | "extract" | "import" | "submit" | "history" | "sync";
 
 /**
  * One scope of the navigator.
@@ -38,6 +38,7 @@ export const SCOPES: readonly Scope[] = [
   { id: "import", label: "Import", hint: "Load the datasets into the database" },
   { id: "submit", label: "Submit", hint: "Send a job to the queue" },
   { id: "history", label: "History", hint: "The runs of the extraction" },
+  { id: "sync", label: "Sync", hint: "Move the collections to a server" },
 ];
 
 /**

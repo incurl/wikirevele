@@ -40,6 +40,7 @@ Wails webview
 | Wikidata ETL worker | `internal/etl/` | The `etl` subcommand: reads a dump from the standard input and writes the two trimmed datasets |
 | ETL pipeline | `internal/etlpipeline/` | Builds the shell pipeline, runs it as a child process, and cancels it |
 | ETL history | `internal/etlhistory/` | The record of the runs, in PocketBase |
+| Sync | `internal/sync/` | Moves the collections between this application and a remote PocketBase server |
 | Job queue | `internal/jobs/` | Persistence, scheduling, cancellation, status transitions, events |
 | Runner | `internal/runner/` | The extension point of the queue: it ships an echo runner, and a real one replaces it |
 | Embedded database | `internal/pocketbase/` | Bootstrap, migrations, settings, encrypted secrets |
@@ -232,8 +233,32 @@ Everything lives in `pb_data/` next to the executable:
 | `pb_data/data.db` | The SQLite database (6 collections) |
 | `pb_data/storage/` | The stored files, served by PocketBase's native file route |
 | `pb_data/.wikirevele_key` | The AES-256-GCM key for the secrets (mode 0600) |
+| `pb_data/sync.log` | The log of the sync runs |
 
 Set `WIKIREVELE_DATA_DIR` to relocate it.
+
+## Sync
+
+The **Sync** panel moves collections between this application and a
+remote PocketBase server. The user chooses the collections and the
+direction of each one — push, pull or reconcile — and the run happens
+in the background.
+
+The remote server needs nothing but PocketBase itself: the schema
+travels with the collections API and the records with the batch API.
+The one setting it needs is the batch API, which is off by default:
+
+```go
+app.Settings().Batch.Enabled = true
+```
+
+The credentials are the ones of a superuser of the remote server, and
+the password is stored encrypted like the API key. The sync is always
+started from here: the remote server never calls back.
+
+The conflict resolution is made on a field of the sync and not on the
+`updated` field of the records, because the server overwrites that one
+on every write. See [docs/sync.md](docs/sync.md) for the protocol.
 
 ## Collections
 
@@ -371,6 +396,7 @@ fetches it back through PocketBase's file route.
 | [docs/architecture.md](docs/architecture.md) | Why the pieces are shaped the way they are |
 | [docs/etl-manual.md](docs/etl-manual.md) | The operator's guide to the ETL worker: how to run it, what it writes, and what to do when it misbehaves |
 | [docs/wikidata.md](docs/wikidata.md) | The Wikidata dataset pipeline: what the ETL worker trims, what the application imports, and the boundary between them |
+| [docs/sync.md](docs/sync.md) | The sync with a remote server: the protocol, the conflict resolution and what it needs from the server |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | The failures that cost time, and what fixes them |
 | [docs/audit.md](docs/audit.md) | The audit: the defects and their reproductions |
 | [docs/code-review.md](docs/code-review.md) | The trade-offs that were deliberately kept, and why |

@@ -18,6 +18,7 @@ import (
 	"github.com/incurl/wikirevele/internal/etlpipeline"
 	"github.com/incurl/wikirevele/internal/jobs"
 	"github.com/incurl/wikirevele/internal/pocketbase"
+	"github.com/incurl/wikirevele/internal/sync"
 	"github.com/incurl/wikirevele/internal/wikidata"
 )
 
@@ -34,6 +35,10 @@ type AppService struct {
 	wikidata *wikidata.Service
 	// etl runs the pipelines that produce the datasets.
 	etl *etlpipeline.Service
+	// sync moves the collections between this application and the
+	// remote server. It may be nil, in which case the panel is not
+	// shown.
+	sync *sync.Service
 }
 
 // NewAppService creates the application service.
@@ -48,6 +53,7 @@ func NewAppService(
 	log *console.Log,
 	wikidataService *wikidata.Service,
 	etlService *etlpipeline.Service,
+	syncService *sync.Service,
 ) *AppService {
 	return &AppService{
 		pb:       pb,
@@ -56,6 +62,7 @@ func NewAppService(
 		console:  log,
 		wikidata: wikidataService,
 		etl:      etlService,
+		sync:     syncService,
 	}
 }
 
@@ -727,6 +734,278 @@ func (s *AppService) DeleteEtlHistoryEntry(recordID string) error {
 		return fmt.Errorf("etlpipeline: the pipeline is not available")
 	}
 	return s.etl.Delete(recordID)
+}
+
+// SyncCollectionView is one collection that can be synced, as the
+// frontend sees it.
+//
+// The type is declared here rather than in the sync package, because
+// a bound method must not return the type of an internal package: the
+// frontend would receive it as an empty object.
+type SyncCollectionView struct {
+	// Name is the name of the collection.
+	Name string `json:"name"`
+	// Type is the type of the collection.
+	Type string `json:"type"`
+	// Records is the number of records it holds.
+	Records int64 `json:"records"`
+	// HasSyncField tells whether it already carries the fields the
+	// sync needs.
+	HasSyncField bool `json:"has_sync_field"`
+	// Selected tells whether the collection is part of the sync set.
+	Selected bool `json:"selected"`
+	// Direction is the way the records of the collection travel.
+	Direction string `json:"direction"`
+	// IncludeSchema tells whether the schema travels as well.
+	IncludeSchema bool `json:"include_schema"`
+	// LastPush is the time of the last push of the collection.
+	LastPush string `json:"last_push"`
+	// LastPull is the time of the last pull of the collection.
+	LastPull string `json:"last_pull"`
+}
+
+// SyncSetView is the set of the collections that take part in a sync,
+// as the frontend sees it.
+type SyncSetView struct {
+	// Collections are the collections of the local database that can
+	// be synced.
+	Collections []SyncCollectionView `json:"collections"`
+	// BaseURL is the address of the remote server.
+	BaseURL string `json:"base_url"`
+	// Email is the identity of the superuser of the remote server.
+	Email string `json:"email"`
+	// HasPassword tells whether a password is stored.
+	HasPassword bool `json:"has_password"`
+	// Configured tells whether the sync has everything it needs to
+	// run.
+	Configured bool `json:"configured"`
+}
+
+// GetSyncSet returns the collections that can be synced and the
+// configuration of the sync.
+//
+// The password of the superuser is never returned: the frontend only
+// ever learns whether one is stored.
+func (s *AppService) GetSyncSet() (SyncSetView, error) {
+	view := SyncSetView{Collections: []SyncCollectionView{}}
+
+	if s.sync == nil {
+		return view, fmt.Errorf("sync: the sync is not available")
+	}
+
+	collections, err := s.sync.Collections()
+	if err != nil {
+		return view, err
+	}
+
+	set := s.sync.SyncSet()
+	cursors := s.sync.Cursors()
+
+	for _, collection := range collections {
+		entry := SyncCollectionView{
+			Name:         collection.Name,
+			Type:         collection.Type,
+			Records:      collection.Records,
+			HasSyncField: collection.HasSyncField,
+			Direction:    string(sync.DirectionPush),
+		}
+
+		if spec, ok := set.Spec(collection.Name); ok {
+			entry.Selected = true
+			entry.Direction = string(spec.Direction)
+			entry.IncludeSchema = spec.IncludeSchema
+		}
+
+		if cursor, ok := cursors.Get(collection.Name); ok {
+			entry.LastPush = formatSyncTime(cursor.Push)
+			entry.LastPull = formatSyncTime(cursor.Pull)
+		}
+
+		view.Collections = append(view.Collections, entry)
+	}
+
+	if s.settings != nil {
+		baseURL, err := s.settings.GetBaseURL()
+		if err != nil {
+			return view, err
+		}
+		view.BaseURL = baseURL
+
+		email, err := s.settings.GetSyncEmail()
+		if err != nil {
+			return view, err
+		}
+		view.Email = email
+
+		_, hasPassword, err := s.settings.GetSyncPassword()
+		if err != nil {
+			return view, err
+		}
+		view.HasPassword = hasPassword
+
+		view.Configured = baseURL != "" && email != "" && hasPassword
+	}
+
+	return view, nil
+}
+
+// SaveSyncSet stores the set of the collections that take part in a
+// sync.
+//
+// The credentials are stored with it: they are part of the same
+// configuration, and a set without them cannot be run.
+func (s *AppService) SaveSyncSet(set SyncSetView) error {
+	if s.sync == nil {
+		return fmt.Errorf("sync: the sync is not available")
+	}
+
+	if s.settings != nil {
+		if err := s.settings.SetBaseURL(set.BaseURL); err != nil {
+			return err
+		}
+		if err := s.settings.SetSyncEmail(set.Email); err != nil {
+			return err
+		}
+	}
+
+	specs := make([]sync.CollectionSpec, 0, len(set.Collections))
+	for _, collection := range set.Collections {
+		if !collection.Selected {
+			continue
+		}
+		direction := sync.Direction(collection.Direction)
+		if !direction.IsValid() {
+			direction = sync.DirectionPush
+		}
+		specs = append(specs, sync.CollectionSpec{
+			Name:          collection.Name,
+			Direction:     direction,
+			IncludeSchema: collection.IncludeSchema,
+		})
+	}
+
+	newSet := sync.SyncSet{Collections: specs}
+	if err := newSet.Validate(); err != nil {
+		return err
+	}
+	s.sync.SetSyncSet(newSet)
+
+	return s.saveSyncState()
+}
+
+// SetSyncPassword stores the password of the superuser of the remote
+// server.
+//
+// The password is never returned to the frontend: it is stored
+// encrypted and read by the Go backend alone.
+func (s *AppService) SetSyncPassword(password string) error {
+	if s.settings == nil {
+		return fmt.Errorf("sync: the settings are not available")
+	}
+	if password == "" {
+		return nil
+	}
+	return s.settings.SetSyncPassword(password)
+}
+
+// StartSync starts a sync of the whole set.
+//
+// The sync runs in the background, and the progress is pushed to the
+// frontend as a Wails event.
+func (s *AppService) StartSync() error {
+	if s.sync == nil {
+		return fmt.Errorf("sync: the sync is not available")
+	}
+	return s.sync.Run(context.Background())
+}
+
+// CancelSync stops the sync that is running.
+//
+// The records that were written before the cancel stay written, and
+// the sync can be run again: the records are upserted.
+func (s *AppService) CancelSync() {
+	if s.sync == nil {
+		return
+	}
+	s.sync.Cancel()
+}
+
+// SyncProgressView is the progress of a sync, as the frontend sees it.
+//
+// The type is declared here rather than in the sync package, because
+// a bound method must not return the type of an internal package: the
+// frontend would receive it as an empty object.
+type SyncProgressView struct {
+	// Collection is the collection the run is on.
+	Collection string `json:"collection"`
+	// Direction is the way the records of the collection travel.
+	Direction string `json:"direction"`
+	// Phase is what the run is doing.
+	Phase string `json:"phase"`
+	// Records is the number of records that were moved.
+	Records int `json:"records"`
+	// Total is the number of collections of the run.
+	Total int `json:"total"`
+	// Finished is the number of collections that are finished.
+	Finished int `json:"finished"`
+	// Running tells whether a run is in progress.
+	Running bool `json:"running"`
+	// Error is the message of the failure, when there was one.
+	Error string `json:"error"`
+	// Over tells whether the run is over.
+	Over bool `json:"over"`
+}
+
+// GetSyncProgress returns the state of the last sync.
+//
+// The panel calls it when it starts, so that it shows the outcome of
+// the run that ran before it was opened.
+func (s *AppService) GetSyncProgress() SyncProgressView {
+	if s.sync == nil {
+		return SyncProgressView{Over: true}
+	}
+	return toSyncProgressView(s.sync.Progress())
+}
+
+// toSyncProgressView turns the progress of the sync into the view of
+// the bindings.
+func toSyncProgressView(progress sync.Progress) SyncProgressView {
+	return SyncProgressView{
+		Collection: progress.Collection,
+		Direction:  string(progress.Direction),
+		Phase:      progress.Phase,
+		Records:    progress.Records,
+		Total:      progress.Total,
+		Finished:   progress.Finished,
+		Running:    progress.Running,
+		Error:      progress.Error,
+		Over:       progress.Over,
+	}
+}
+
+// saveSyncState writes the set of the collections and the times of the
+// last runs to the settings.
+func (s *AppService) saveSyncState() error {
+	if s.sync == nil || s.settings == nil {
+		return nil
+	}
+
+	store := sync.NewStore(s.settings.GetRaw, s.settings.SetRaw)
+	return store.Save(sync.Settings{
+		Set:     s.sync.SyncSet(),
+		Cursors: s.sync.Cursors(),
+	})
+}
+
+// formatSyncTime writes a time of a run for the interface.
+//
+// The empty time is written as an empty string, and the interface
+// shows "never" for it.
+func formatSyncTime(value time.Time) string {
+	if value.IsZero() {
+		return ""
+	}
+	return value.Local().Format("2006-01-02 15:04:05")
 }
 
 // labelsOf turns the terms of a record into plain text, by language.

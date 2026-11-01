@@ -6,6 +6,7 @@ import (
 	"github.com/incurl/wikirevele/internal/console"
 	"github.com/incurl/wikirevele/internal/etlpipeline"
 	"github.com/incurl/wikirevele/internal/jobs"
+	"github.com/incurl/wikirevele/internal/sync"
 	"github.com/incurl/wikirevele/internal/wikidata"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -31,6 +32,13 @@ const EventWikidataImportProgress = "wikidata:import:progress"
 // The pipeline runs in the background, so this is the only way the
 // panel learns that it is moving.
 const EventEtlProgress = "etl:progress"
+
+// EventSyncProgress is emitted whenever the progress of a sync
+// changes. The payload is a sync.Progress.
+//
+// The sync runs in the background, so this is the only way the panel
+// learns that it is moving.
+const EventSyncProgress = "sync:progress"
 
 // EventBridge pushes job updates to the frontend as Wails events.
 //
@@ -102,4 +110,15 @@ func (b *EventBridge) LogEtlLine(runID, line string) {
 		Source:  "etl",
 		Message: line,
 	})
+}
+
+// EmitSyncProgress pushes the progress of a sync.
+//
+// It implements sync.Emitter, so that the panel sees the run as it
+// goes.
+func (b *EventBridge) EmitSyncProgress(progress sync.Progress) {
+	if b == nil || b.app == nil {
+		return
+	}
+	b.app.Event.Emit(EventSyncProgress, progress)
 }

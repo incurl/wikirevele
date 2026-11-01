@@ -10,6 +10,7 @@ import (
 	"github.com/incurl/wikirevele/internal/etlpipeline"
 	"github.com/incurl/wikirevele/internal/jobs"
 	"github.com/incurl/wikirevele/internal/pocketbase"
+	"github.com/incurl/wikirevele/internal/sync"
 	"github.com/incurl/wikirevele/internal/wikidata"
 )
 
@@ -47,7 +48,14 @@ func newTestService(t *testing.T, runner jobs.Runner) (*AppService, *jobs.Manage
 		nil,
 	)
 
-	return NewAppService(pb, settings, manager, log, wikidata.NewService(pb.App()), etlService), manager
+	// The sync is there as well: it has no remote server to talk to
+	// in a test, so it is created without one.
+	syncService := sync.NewService(
+		sync.NewLocalStore(pb.App()),
+		func() (*sync.Client, error) { return nil, nil },
+	)
+
+	return NewAppService(pb, settings, manager, log, wikidata.NewService(pb.App()), etlService, syncService), manager
 }
 
 // okRunner is a runner that always succeeds.

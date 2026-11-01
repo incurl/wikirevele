@@ -17,6 +17,7 @@ import {
   LayoutGrid,
   PanelLeftClose,
   PanelLeftOpen,
+  RefreshCw,
   Send,
   Upload,
   type LucideIcon,
@@ -33,6 +34,7 @@ const ICONS: Record<ScopeId, LucideIcon> = {
   import: Upload,
   submit: Send,
   history: History,
+  sync: RefreshCw,
 };
 
 /**

@@ -173,6 +173,7 @@ tasks) or `wails3 task --list-all` (everything). To inspect without running, use
 | The Wikidata ETL worker (the dump to NDJSON pipeline) | `internal/etl/` | `go test ./internal/etl/...` and a run over a sample dump |
 | The ETL pipeline (the child processes) | `internal/etlpipeline/` | `go test ./internal/etlpipeline/...` |
 | The ETL history | `internal/etlhistory/` | `go test ./internal/etlhistory/...` |
+| The sync with a remote server | `internal/sync/` | `go test ./internal/sync/...` |
 | Settings or secrets | `internal/pocketbase/settings.go`, `internal/pocketbase/crypto.go` | `go test ./internal/pocketbase/...` |
 | A panel or the layout | `frontend/src/features/`, `frontend/src/app/App.tsx`, `frontend/src/styles.css` | `npm run typecheck && npm test` |
 | The product name, identifier or version | `build/config.yml`, `build/*/Taskfile.yml`, `internal/bindings/service.go` (`AppName`, `AppVersion`), `frontend/package.json`, `Taskfile.yml` (`APP_NAME`) | `wails3 build` |
@@ -262,6 +263,8 @@ development and testing.
   accident.
 - `docs/wikidata.md` is the dataset pipeline: what the ETL worker reads and trims, what the application imports, and what the
   boundary between the two forbids.
+- `docs/sync.md` is the sync with a remote PocketBase server: the protocol, the conflict resolution and what the
+  server has to enable.
 - `docs/troubleshooting.md` collects the failures that cost time, and what actually fixes them.
 - `CONTEXT.md` is the vocabulary: what each term in this codebase means, and what it does not mean.
 - `.agents/skills/` holds task-scoped skills with step-by-step procedures.

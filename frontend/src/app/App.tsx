@@ -35,6 +35,7 @@ import { Navigator } from './Navigator';
 import { DEFAULT_SCOPE, SCOPES, scopeOfPath, type ScopeId } from './scopes';
 import { SettingsDialog } from '../features/settings/SettingsDialog';
 import { SubmitPanel } from '../features/submit/SubmitPanel';
+import { SyncPanel } from '../features/sync/SyncPanel';
 import { WikidataPanel } from '../features/wikidata/WikidataPanel';
 import { ImportPanel } from '../features/wikidata/components/ImportPanel';
 
@@ -308,6 +309,7 @@ function App() {
           />
         )}
         {scope === 'history' && <EtlHistoryPanel onNotify={(message, kind) => notify(message, kind)} />}
+        {scope === 'sync' && <SyncPanel onNotify={(message, kind) => notify(message, kind)} />}
       </main>
 
       <JobsRail
