@@ -130,6 +130,24 @@ button {
   font-family: inherit;
   font-size: inherit;
   cursor: pointer;
+  /*
+   * The colours of a button are set here and not left to the engine.
+   *
+   * The preflight of Tailwind is not used, so nothing resets the
+   * native appearance of a button: without these two declarations a
+   * button keeps the colour of the system, and the system paints it
+   * with the colours of its own theme. The interface declares
+   * itself dark, and the engine then paints the button with a dark
+   * surface and a light text: a button that reads as a blank
+   * rectangle.
+   *
+   * A button of the interface has a border of its own, and the
+   * class of the panel may give it another one.
+   */
+  color: var(--text);
+  background: var(--bg-input);
+  border: 0.0769rem solid var(--border);
+  border-radius: var(--radius);
 }
 
 button:disabled {
@@ -535,7 +553,15 @@ code {
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  /*
+   * The accent is a light blue, and the text on it is the dark one.
+   *
+   * White on the accent is a contrast of 2.2, which is not readable:
+   * the button is a light surface and the text on it has to be dark.
+   * The dark foreground of the palette is the one the primary buttons
+   * of the Tailwind theme use, and it is the same colour.
+   */
+  color: var(--primary-foreground);
 }
 
 .btn-primary:hover:not(:disabled) {
